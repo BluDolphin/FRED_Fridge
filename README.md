@@ -2,7 +2,6 @@
 
 ### ideas
 - Automated turret 
- - g
 - Ecological survey
 - Phone unplugger
 
