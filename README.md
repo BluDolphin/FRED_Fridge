@@ -2,11 +2,9 @@
 
 ### ideas
 - Automated turret 
+ - g
 - Ecological survey
 - Phone unplugger
-- solar tracker
-- Vehicle HUD
-- wind turbine (w/weather sensors)
 
 
 ### Key dates
