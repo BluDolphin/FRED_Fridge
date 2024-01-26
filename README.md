@@ -1,3 +1,9 @@
 #The-Inator
 
-### idea
+### ideas
+- Automated turret 
+- Ecological survey
+- Phone unplugger
+- solar tracker
+- Vehicle HUD
+- wind turbine (w/weather sensors)
