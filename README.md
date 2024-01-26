@@ -1,1 +1,3 @@
-# The-Inator
+#The-Inator
+
+### idea
