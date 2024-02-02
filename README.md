@@ -9,9 +9,7 @@
   - User will plug their phone in and set a timer for charge duration
   - when duration is up the machine will unplug the charging cable
   - optionally: mobile app to broadcast battery level to pi so the user can set what battery level they want it to be un-plugged 
-- Ecological survey
-  - multiple sensors to gather data for ecological purposes
-  - sensors such as barometer, thermomiter, humitity, etc
+
 
 
 
