@@ -1,16 +1,16 @@
-# The-Inator
+# FRED - Food Reminder for Expiry Dates  
+FRED is a small device wich will assist users in meal planning and preventing food waste 
 
-### Ideas
-- Automated turret
-  - Using a camera to detect a face, if the face is on the left rotate left etc
-  - 2 motors for x and y axis
-  - Nerf gun strapped on the end of the gimbal and will have a servo to pull the trigger
-- Phone unplugger
-  - User will plug their phone in and set a timer for charge duration
-  - when duration is up the machine will unplug the charging cable
-  - optionally: mobile app to broadcast battery level to pi so the user can set what battery level they want it to be un-plugged 
+The user will present the barcodes of food items to FRED, where the ID will be recored along with the item name(user input), the current date, and how many days until expiry(user input).
+This data will be stored into an SQL database.
 
+For example:
+| barcodeID  | itemName | dateAdded | expiryDate | daysLeft |
+| ---------- | -------- | --------- | ---------- | -------- |
+|  48136481  |   Steak  |  18/02/24 |  24/02/24  |    6     |
+|  84613584  |  Chicken |  15/02/24 |  19/02/24  |    1     |
 
+At the beginning of each day FRED will update the daysLeft field to be correct. This will pass onto the GUI to indicate to the user how far the item is until its expiry date.
 
 
 ### Key dates
