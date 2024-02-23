@@ -13,7 +13,8 @@ For example:
 At the beginning of each day FRED will update the daysLeft field to be correct. This will pass onto the GUI to indicate to the user how far the item is until its expiry date.
 
 
-![Screenshot 2024-02-22 170205](https://github.com/BluDolphin/FRED_Fridge/assets/115663810/0997215d-c485-4729-970d-3c1b916334d6)
+![image](https://github.com/BluDolphin/FRED_Fridge/assets/115663810/4d67d54e-2730-4838-bcbc-4a5ee7240caa)
+
 
 
 ### Key dates
