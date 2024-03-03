@@ -7,8 +7,13 @@ def scan_barcode_from_webcam():
 
     while True:
         # Get a frame from the webcam stream
-        _, frame = video_capture.read()
-
+        ret, frame = video_capture.read()
+        if not ret:
+            print("Failed to read frame")
+            # Save the frame as an image
+            cv2.imwrite('output.jpg', frame)
+            break
+        
         # Decode barcodes in the frame
         barcodes = pyzbar.decode(frame)
 
