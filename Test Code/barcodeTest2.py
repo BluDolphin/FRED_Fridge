@@ -1,5 +1,7 @@
 import cv2
 from pyzbar import pyzbar
+from picamera2 import Picamera2
+picam2 = Picamera2()
 
 def scan_barcode_from_webcam():
     # Initialize video capture from the default webcam (index 0)
@@ -32,6 +34,7 @@ def scan_barcode_from_webcam():
     # Release video capture and close OpenCV windows
     video_capture.release()
     cv2.destroyAllWindows()
+picam2.capture_PNG('output.png')
+#while True:
+#    scan_barcode_from_webcam()
 
-
-scan_barcode_from_webcam()
