@@ -6,6 +6,9 @@ import threading
 import datetime
 import time
 
+import cv2
+from pyzbar import pyzbar
+
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -13,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 cachedItems = [{"barcodeID": "header1", "itemName": "header2"}] #SQL - cachedItems
 database = [{"barcodeID": "header1", "itemName": "header2", "dateAdded": "header3", "expiryDate": "header4", "daysLeft": "header5"}] #SQL - database
 
-#CODE FOR FOREGROUND --------------------------------------
+#CODE FOR FOREGROUND --------------------------------------------------
 def mainMenu():
    print("Welcome to the main menu")
    print("1. Add new item")
@@ -38,9 +41,13 @@ def addNewItem():
     daysLeft = ""
 
 
-    #Placeholder for BARCODE INPUT
-    #FOR NOW MANUAL INPUT
-    barcodeID = input("enter barcode: ")
+    # Get barcode from user
+    # Will try to use pi camera to get barcode
+    # If not on the pi then manual input
+    try :
+        getBarcode() # Call function to get barcode
+    except:
+        barcodeID = input("enter barcode: ")
     
     
     #for each item in the cachedItems 
@@ -82,7 +89,33 @@ def viewItems():
         
     mainMenu()
     
-#CODE FOR BACKGROUND --------------------------------------
+#Code FOR BARCODE DETECTION/ READING ----------------------------------       
+def getBarcode():
+    from picamera2 import Picamera2 # Picamera 1 seems to be dead ¯\_(ツ)_/¯
+    # Setup camera and configure to 4k resolution
+    picam2 = Picamera2()
+    camera_config = picam2.create_still_configuration(main={"size": (3840, 2160)})
+    picam2.configure(camera_config)
+
+    # Take an image every second and read data
+    while True:
+        picam2.start()
+        picam2.capture_file("Barcode.jpg")
+        
+        # Read the image from the provided file path
+        image = cv2.imread("Barcode.jpg")
+        # Decode barcodes from the image using pyzbar
+        barcodes = pyzbar.decode(image)
+        # Iterate through detected barcodes and extract data from the barcode 
+        for barcode in barcodes:
+            # uses UTF-8 encoding
+            barcodeData = barcode.data.decode("utf-8")
+            logging.debug(f"Barcode: {barcodeData}")
+            return(barcodeData)
+    
+        time.sleep(1)
+    
+#CODE FOR BACKGROUND --------------------------------------------------
 def updateEntrys():
     exTime = 3 #number of days until pruged from database 
     yesterdate = datetime.datetime.now().strftime("%Y-%m-%d") 
@@ -119,7 +152,7 @@ def updateEntrys():
                 logging.debug("Next item.....")
         yesterdate = currentDate
 
-#Initialisation -------------------------------------------
+#Initialisation -------------------------------------------------------
 
 BackThread=threading.Thread(target=updateEntrys).start() #create background thread
 
