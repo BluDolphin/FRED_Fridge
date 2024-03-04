@@ -92,10 +92,13 @@ def viewItems():
 #Code FOR BARCODE DETECTION/ READING ----------------------------------       
 def getBarcode():
     from picamera2 import Picamera2 # Picamera 1 seems to be dead ¯\_(ツ)_/¯
+    iteration = 0
     # Setup camera and configure to 4k resolution
-    picam2 = Picamera2()
-    camera_config = picam2.create_still_configuration(main={"size": (3840, 2160)})
-    picam2.configure(camera_config)
+    if iteration == 0:
+        picam2 = Picamera2()
+        camera_config = picam2.create_still_configuration(main={"size": (3840, 2160)})
+        picam2.configure(camera_config)
+        iteration = 1
 
     # Take an image every second and read data
     while True:
@@ -111,6 +114,7 @@ def getBarcode():
             # uses UTF-8 encoding
             barcodeData = barcode.data.decode("utf-8")
             logging.debug(f"Barcode: {barcodeData}")
+            picam2.stop()
             return(barcodeData)
     
         time.sleep(1)
