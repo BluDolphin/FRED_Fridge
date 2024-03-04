@@ -91,10 +91,11 @@ def viewItems():
     
 #Code FOR BARCODE DETECTION/ READING ----------------------------------       
 def getBarcode():
-    from picamera2 import Picamera2 # Picamera 1 seems to be dead ¯\_(ツ)_/¯
+
     iteration = 0
     # Setup camera and configure to 4k resolution
     if iteration == 0:
+        from picamera2 import Picamera2 # Picamera 1 seems to be dead ¯\_(ツ)_/¯
         picam2 = Picamera2()
         camera_config = picam2.create_still_configuration(main={"size": (3840, 2160)})
         picam2.configure(camera_config)
