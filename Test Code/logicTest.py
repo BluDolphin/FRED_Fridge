@@ -21,6 +21,6 @@ def start():
         if str(currentDate) < str(data[0]["expiry"]):
             print("Item not expired")
     print("Item expired")
-    
-    
+
+
 start()

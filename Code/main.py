@@ -2,18 +2,32 @@
 this is the main file for the progam
 For now going to use placeholders for SQL and for the GUI
 """
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import threading
 import datetime
 import time
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+import cv2
+from pyzbar import pyzbar
+
+#Try to setup the pi camera if running on pi
+try:
+    from picamera2 import Picamera2
+    picam2 = Picamera2()         
+    camera_config = picam2.create_still_configuration(main={"size": (1920, 1080)})
+    picam2.configure(camera_config)
+except:
+    logging.debug("Not running on pi")
+    
+
 
 #TEMP DATABASE 
 cachedItems = [{"barcodeID": "header1", "itemName": "header2"}] #SQL - cachedItems
-database = [{"barcodeID": "header1", "itemName": "header2", "dateAdded": "header3", "expiryDate": "header4", "daysLeft": "header5"}] #SQL - database
+database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}] #SQL - database
 
-#CODE FOR FOREGROUND --------------------------------------
+#CODE FOR FOREGROUND --------------------------------------------------
 def mainMenu():
    print("Welcome to the main menu")
    print("1. Add new item")
@@ -36,19 +50,24 @@ def addNewItem():
     dateAdded = ""
     expiryDate = ""
     daysLeft = ""
-
-
-    #Placeholder for BARCODE INPUT
-    #FOR NOW MANUAL INPUT
-    barcodeID = input("enter barcode: ")
     
+
+    # Get barcode from user
+    # Will try to use pi camera to get barcode
+    # If not on the pi then manual input
+    try :
+        barcodeID = getBarcode() # Call function to get barcode
+    except:
+        barcodeID = input("enter barcode: ")
     
-    #for each item in the cachedItems 
+    # check for item name in cachedItems
+    # For each item in the cachedItems 
     for i in cachedItems: #SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeID:
-            itemName = i["itemName"] #SQL - get itemName from cachedItems
-            logging.debug(f"Item found: {itemName}") #debug line
+        if i["barcodeID"] == barcodeID: # SQL - if barcodeID is found 
+            itemName = i["itemName"] #SQL - get itemName attached to barcodeID
+            logging.debug(f"Item found: {itemName}") # debug line
             break
+        
         
     #Get user input for itemName if not found in cachedItems
     if itemName == "":
@@ -62,7 +81,7 @@ def addNewItem():
     dateAdded = datetime.datetime.now() #Get current date
     expiryDate = dateAdded + datetime.timedelta(days=daysLeft) #Get expiryDate = dateAdded + daysLeft
     
-    #Cull end of variables to just date
+    #Cull end of date variables to just date
     dateAdded = dateAdded.strftime("%Y-%m-%d")
     expiryDate = expiryDate.strftime("%Y-%m-%d")
     
@@ -82,13 +101,37 @@ def viewItems():
         
     mainMenu()
     
-#CODE FOR BACKGROUND --------------------------------------
+#Code FOR BARCODE DETECTION/ READING ----------------------------------
+
+#WILL ONLY WORK ON THE PI
+def getBarcode():
+    # Take an image every second and read data
+    while True:
+        picam2.start()
+        picam2.capture_file("Barcode.jpg")
+        
+        # Read the image from the provided file path
+        image = cv2.imread("Barcode.jpg")
+        # Decode barcodes from the image using pyzbar
+        barcodes = pyzbar.decode(image)
+        # Iterate through detected barcodes and extract data from the barcode 
+        for barcode in barcodes:
+            # uses UTF-8 encoding
+            barcodeData = barcode.data.decode("utf-8")
+            logging.debug(f"Barcode: {barcodeData}")
+            if barcodeData.isdigit():
+                picam2.stop()
+                return(barcodeData)
+    
+        time.sleep(1)
+    
+#CODE FOR BACKGROUND --------------------------------------------------
 def updateEntrys():
+    logging.debug("Background thread started")
     exTime = 3 #number of days until pruged from database 
     yesterdate = datetime.datetime.now().strftime("%Y-%m-%d") 
     
     time.sleep(20)
-    logging.debug("Background thread started")
     
     while True:
         currentDate = datetime.datetime.now()
@@ -119,8 +162,7 @@ def updateEntrys():
                 logging.debug("Next item.....")
         yesterdate = currentDate
 
-#Initialisation -------------------------------------------
+#Initialisation -------------------------------------------------------
 
 BackThread=threading.Thread(target=updateEntrys).start() #create background thread
-
 mainMenu() #Load GUI
