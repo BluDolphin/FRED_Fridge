@@ -1,0 +1,15 @@
+
+
+
+CREATE TABLE inventory ( 
+    id INTEGER PRIMARY KEY,
+    itemname TEXT FOREIGN KEY,
+    currentdate GETDATE(),
+    expirationdate DATE,
+    daysleft INTEGER,
+)
+
+CREATE TABLE cacheditems ( 
+    id INTEGER PRIMARY KEY,
+    itemname TEXT FOREIGN KEY,
+)

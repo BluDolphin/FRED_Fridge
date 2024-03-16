@@ -4,6 +4,7 @@ For now going to use placeholders for SQL and for the GUI
 """
 import logging
 logging.basicConfig(level=logging.DEBUG)
+from os.path import exists
 
 import threading
 import datetime
