@@ -37,8 +37,9 @@ if os.path.exists("FRED-Data.json"):
 #If file does not exist then create new file  
 else:
     logging.debug("File not found, creating new file")
-    cachedItems = []
-    database = []
+    cachedItems = [{"barcodeID": "header1", "itemName": "header2"}] #SQL - cachedItems
+    database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}] #SQL - database
+
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)
 
@@ -116,9 +117,9 @@ def addNewItem():
     mainMenu()
 
 def viewItems():
-    #Placeholder for GUI and SQL
-    #no point in making a command line interface for this
-    #the GUI will be completely different
+    # Placeholder for GUI and SQL
+    # No point in making a command line interface for this
+    # The GUI will be completely different
     for i in database:
         print(i["barcodeID"], i["itemName"], i["dateAdded"], i["daysLeft"])
         
