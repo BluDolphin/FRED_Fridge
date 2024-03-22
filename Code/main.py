@@ -46,13 +46,18 @@ else:
 logging.debug(f"cachedItems: {cachedItems}")
 logging.debug(f"database: {database}")
 
-#PROGRAM START ========================================================
-#CODE FOR FOREGROUND --------------------------------------------------
-def mainMenu(): 
+#SAVE DATA ------------------------------------------------------------
+def saveData(): #Save data function
     logging.debug("Saving data")
     with open("FRED-Data.json", "wt") as file: 
         json.dump({"cachedItems": cachedItems, "database": database}, file) #Save data to file
         
+        
+#PROGRAM START ========================================================
+#CODE FOR FOREGROUND --------------------------------------------------
+def mainMenu(): 
+    saveData()
+    
     print("Welcome to the main menu")
     print("1. Add new item")
     print("2. View items")
@@ -162,11 +167,10 @@ def updateEntrys():
         
         if currentDate.strftime("%Y-%m-%d") == yesterdate:
             time.sleep(600) #sleep for 10 mins
-            continue #loop
+            continue #loop 
         
         for i in database:
             if i["daysLeft"] != "header5":#TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
-                
                 
                 expiryDate = i["expiryDate"]
                 
@@ -184,7 +188,10 @@ def updateEntrys():
                     logging.debug(f"{i}")
                 
                 logging.debug("Next item.....")
+           
+        saveData()     
         yesterdate = currentDate
+
 
 #Initialisation -------------------------------------------------------
 
