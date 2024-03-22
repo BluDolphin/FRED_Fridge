@@ -12,8 +12,10 @@ For example:
 
 At the beginning of each day FRED will update the daysLeft field to be correct. This will pass onto the GUI to indicate to the user how far the item is until its expiry date.
 
-
+## Flow Chart
 ![image](https://github.com/BluDolphin/FRED_Fridge/assets/115663810/4d67d54e-2730-4838-bcbc-4a5ee7240caa)
+## LCD Panel Diagram
+![null (2)](https://github.com/BluDolphin/FRED_Fridge/assets/115663810/a0c3e4dd-e66c-442d-9110-1b7d47a745f2)
 
 
 
