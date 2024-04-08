@@ -5,6 +5,8 @@ For now going to use placeholders for SQL and for the GUI
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
+import json
+import os
 import threading
 import datetime
 import time
@@ -20,28 +22,55 @@ try:
     picam2.configure(camera_config)
 except:
     logging.debug("Not running on pi")
-    
 
 
-#TEMP DATABASE 
-cachedItems = [{"barcodeID": "header1", "itemName": "header2"}] #SQL - cachedItems
-database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}] #SQL - database
+#LOAD DATA ------------------------------------------------------------
+logging.debug("Loading data")
 
+#If file exist then load data
+if os.path.exists("FRED-Data.json"): 
+    with open("FRED-Data.json", "rt") as file:
+        data = json.load(file)
+        cachedItems = data["cachedItems"]
+        database = data["database"]    
+        
+#If file does not exist then create new file  
+else:
+    logging.debug("File not found, creating new file")
+    cachedItems = [{"barcodeID": "header1", "itemName": "header2"}] #SQL - cachedItems
+    database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}] #SQL - database
+
+    with open("FRED-Data.json", "wt") as file:
+        json.dump({"cachedItems": cachedItems, "database": database}, file)
+
+logging.debug(f"cachedItems: {cachedItems}")
+logging.debug(f"database: {database}")
+
+#SAVE DATA ------------------------------------------------------------
+def saveData(): #Save data function
+    logging.debug("Saving data")
+    with open("FRED-Data.json", "wt") as file: 
+        json.dump({"cachedItems": cachedItems, "database": database}, file) #Save data to file
+        
+        
+#PROGRAM START ========================================================
 #CODE FOR FOREGROUND --------------------------------------------------
-def mainMenu():
-   print("Welcome to the main menu")
-   print("1. Add new item")
-   print("2. View items")
-   print("q. Quit")
-   if (choice := input(">")) == "1":
-       addNewItem()
-   elif choice == "2":
-       viewItems()
-   elif choice == "q":
-       quit()
-   else:
-       print("Invalid input")
-       mainMenu()
+def mainMenu(): 
+    saveData()
+    
+    print("Welcome to the main menu")
+    print("1. Add new item")
+    print("2. View items")
+    print("q. Quit")
+    if (choice := input(">")) == "1":
+        addNewItem()
+    elif choice == "2":
+        viewItems()
+    elif choice == "q":
+        quit()
+    else:
+        print("Invalid input")
+        mainMenu()
        
 def addNewItem():
     #variables for this function
@@ -93,9 +122,9 @@ def addNewItem():
     mainMenu()
 
 def viewItems():
-    #Placeholder for GUI and SQL
-    #no point in making a command line interface for this
-    #the GUI will be completely different
+    # Placeholder for GUI and SQL
+    # No point in making a command line interface for this
+    # The GUI will be completely different
     for i in database:
         print(i["barcodeID"], i["itemName"], i["dateAdded"], i["daysLeft"])
         
@@ -138,11 +167,10 @@ def updateEntrys():
         
         if currentDate.strftime("%Y-%m-%d") == yesterdate:
             time.sleep(600) #sleep for 10 mins
-            continue #loop
+            continue #loop 
         
         for i in database:
             if i["daysLeft"] != "header5":#TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
-                
                 
                 expiryDate = i["expiryDate"]
                 
@@ -160,7 +188,10 @@ def updateEntrys():
                     logging.debug(f"{i}")
                 
                 logging.debug("Next item.....")
+           
+        saveData()     
         yesterdate = currentDate
+
 
 #Initialisation -------------------------------------------------------
 
