@@ -205,7 +205,6 @@ def continue_data_entry():
     open_camera()
 
 def barcode_reader():
-   def getBarcode():
     # Take an image every second and read data
     while True:
         picam2.start()
@@ -224,7 +223,7 @@ def barcode_reader():
                 picam2.stop()
                 return(barcodeData)
     
-        time.sleep(1)
+        sleep(1)
 
 # Function to open camera input
 def open_camera():
@@ -339,7 +338,7 @@ def updateEntrys():
                     logging.debug("Next item.....")
 
             saveData()
-        time.sleep(86400)  # sleep for 24 hours
+        sleep(86400)  # sleep for 24 hours
 
 # Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
 
