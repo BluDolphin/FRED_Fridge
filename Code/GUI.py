@@ -406,26 +406,26 @@ data_entry_window.attributes('-fullscreen', True)  # Set data entry window to fu
 data_entry_window.configure(bg='white')
 
 # Create a label for the data entry page
-data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 36), bg='white', fg='black')
+data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 48), bg='white', fg='black')  # Increased font size
 data_entry_label.pack(pady=(70, 20))  # Further increase top and bottom padding
 
 # Create input field for product name
-product_name_label = tk.Label(data_entry_window, text="Product Name:", font=('calibri', 18), bg='white', fg='black')
+product_name_label = tk.Label(data_entry_window, text="Product Name:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
 product_name_label.pack(pady=(50, 10))  # Increased top padding
 
 # Adjusted width of the product name entry field
-product_name_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE, width=40)
+product_name_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, relief=tk.GROOVE, width=40)  # Increased font size
 product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
 
 # Create input field for expiry date
-expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 18), bg='white', fg='black')
+expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
 expiry_date_label.pack(pady=10)
 
 # Adjusted width of the expiry date entry field
-expiry_date_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE, width=40)
+expiry_date_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, relief=tk.GROOVE, width=40)  # Increased font size
 expiry_date_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
 # Bind the on-screen keyboard to the expiry date entry field
