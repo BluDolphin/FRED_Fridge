@@ -1,14 +1,14 @@
 import tkinter as tk
-from time import strftime, localtime
+from time import strftime, localtime, sleep
 from PIL import Image, ImageTk
 import cv2
-from tkinter import messagebox
+from tkinter import messagebox, Scrollbar
 import threading
 import logging
 import json
 import os
 import datetime
-from tkinter import Scrollbar
+
 
 #Try to setup the pi camera if running on pi
 try:
