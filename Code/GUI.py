@@ -11,14 +11,12 @@ import datetime
 from tkinter import Scrollbar
 
 try:
-    from picamera2 import PiCamera
-    from picamera2.array import PiRGBArray
-    from pyzbar import pyzbar
-    PICAMERA_AVAILABLE = True
-except ImportError:
-    PICAMERA_AVAILABLE = False
-
-keyboard_window = None  # Reference to the keyboard window
+    from picamera2 import Picamera2
+    picam2 = Picamera2()         
+    camera_config = picam2.create_still_configuration(main={"size": (1920, 1080)})
+    picam2.configure(camera_config)
+except:
+    logging.debug("Not running on pi")
 
 # Global variables
 picam2 = None  # Declare picamera instance globally
@@ -194,45 +192,6 @@ def continue_data_entry():
     data_entry_window.withdraw()
     open_camera()
 
-    # Retrieve entered data
-    itemName = product_name_entry.get()
-    daysLeft = int(expiry_date_entry.get())
-
-    # Generate barcodeID (This should be replaced by actual barcode scanning logic)
-    barcodeID = "1234567890"  # Placeholder
-
-    # Get current date and calculate expiry date
-    dateAdded = datetime.datetime.now()
-    expiryDate = dateAdded + datetime.timedelta(days=daysLeft)
-
-    # Cull end of date variables to just date
-    dateAdded = dateAdded.strftime("%Y-%m-%d")
-    expiryDate = expiryDate.strftime("%Y-%m-%d")
-
-    # Check for item name in cachedItems
-    for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeID:  # SQL - if barcodeID is found
-            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-            logging.debug(f"Item found: {itemName}")  # debug line
-            break
-
-    # Get user input for itemName if not found in cachedItems
-    if itemName == "":
-        itemName = product_name_entry.get()
-        cachedItems.append({"barcodeID": barcodeID, "itemName": itemName})  # SQL - add new entry to cachedItems
-        logging.debug(f"{cachedItems}")  # debug line
-
-    logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
-    # SQL - add new entry to database
-    database.append({"barcodeID": barcodeID, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
-
-    # Save data to JSON file
-    saveData()
-
-    # Hide data entry window and show the camera window again
-    data_entry_window.withdraw()
-    open_camera()
-
 def barcode_reader():
     global picam2, rawCapture
     try:
@@ -259,8 +218,8 @@ def barcode_reader():
                     camera_window.withdraw()
                     product_name_entry.insert(0, "Detected Item")  # Placeholder
                     expiry_date_entry.insert(0, "10")  # Placeholder
-                    data_entry_click()
-                    return  # Remove this line to prevent redundant function call
+                    continue_data_entry()  # Directly call continue_data_entry
+                    return  # Exit the function after processing the barcode
 
             rawCapture.truncate(0)
     except Exception as e:
@@ -295,34 +254,34 @@ def open_keyboard(entry):
         keyboard_window.overrideredirect(True)
 
         keys = [
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-        ['z', 'x', 'c', 'v', 'b', 'n', 'm']]
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+            ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+        ]
 
-        button_width = 10  # Increased width
-        button_height = 4  # Adjusted height
+        # Adjusted button width and height
+        button_width = 10  
+        button_height = 4  
 
         for row_idx, row in enumerate(keys):
             row_frame = tk.Frame(keyboard_window)
-            row_frame.grid(row=row_idx, column=0, pady=2)
+            row_frame.grid(row=row_idx, column=0, pady=2)  # Adjusted row index
             for col_idx, key in enumerate(row):
                 btn = tk.Button(row_frame, text=key, width=button_width, height=button_height, command=lambda k=key: entry.insert(tk.END, k))
                 btn.grid(row=0, column=col_idx, padx=2, pady=2)
 
-        bottom_frame = tk.Frame(keyboard_window)
-        bottom_frame.grid(row=3, column=0, pady=2)
-        
-        space_btn = tk.Button(bottom_frame, text='Space', width=button_width * 5, height=button_height, command=lambda: entry.insert(tk.END, ' '))
+        # Add a row for space and backspace keys
+        space_backspace_frame = tk.Frame(keyboard_window)
+        space_backspace_frame.grid(row=len(keys), column=0, pady=2)  # Adjusted row index
+        space_btn = tk.Button(space_backspace_frame, text='Space', width=button_width * 5, height=button_height, command=lambda: entry.insert(tk.END, ' '))
         space_btn.grid(row=0, column=0, columnspan=5, padx=2, pady=2)
-
-        backspace_btn = tk.Button(bottom_frame, text='Backspace', width=button_width * 5, height=button_height, command=lambda: entry.delete(len(entry.get()) - 1, tk.END))
+        backspace_btn = tk.Button(space_backspace_frame, text='Backspace', width=button_width * 5, height=button_height, command=lambda: entry.delete(len(entry.get()) - 1, tk.END))
         backspace_btn.grid(row=0, column=5, columnspan=5, padx=2, pady=2)
 
-        # Create a button to close the keyboard
+        # Create a button to close the keyboard with smaller size
         close_keyboard_button = tk.Button(keyboard_window, text="✖", font=('calibri', 18), bg='white', command=close_keyboard, fg='red')
-        close_keyboard_button.grid(row=3, column=9, columnspan=2, padx=2, pady=2)  # Position the close button
-
+        close_keyboard_button.grid(row=len(keys), column=10, columnspan=5, padx=2, pady=2)  # Position the close button
 
         # Calculate the position of the keyboard window relative to the first input box
         entry_x = entry.winfo_rootx()
@@ -342,7 +301,7 @@ def open_keyboard(entry):
         window_width = keyboard_window.winfo_reqwidth()
         window_height = keyboard_window.winfo_reqheight()
         position_right = int(keyboard_window.winfo_screenwidth() / 2 - window_width / 2)
-        position_down = int(keyboard_window.winfo_screenheight() / 2 - window_height / 2) + 150  # Adjust vertical position
+        position_down = int(keyboard_window.winfo_screenheight() / 2 - window_height / 2) + 300  # Increased vertical position
         keyboard_window.geometry(f"{window_width}x{window_height}+{position_right}+{position_down}")
 
 # Function to close the on-screen keyboard
@@ -441,15 +400,16 @@ data_entry_window.attributes('-fullscreen', True)  # Set data entry window to fu
 data_entry_window.configure(bg='white')
 
 # Create a label for the data entry page
-data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 24), bg='white', fg='black')
-data_entry_label.pack(pady=(50, 10))  # Increased top padding
+data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 36), bg='white', fg='black')
+data_entry_label.pack(pady=(70, 20))  # Further increase top and bottom padding
 
 # Create input field for product name
 product_name_label = tk.Label(data_entry_window, text="Product Name:", font=('calibri', 18), bg='white', fg='black')
 product_name_label.pack(pady=(50, 10))  # Increased top padding
 
-product_name_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE)
-product_name_entry.pack(pady=10)
+# Adjusted width of the product name entry field
+product_name_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE, width=40)
+product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
@@ -458,8 +418,9 @@ product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_e
 expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 18), bg='white', fg='black')
 expiry_date_label.pack(pady=10)
 
-expiry_date_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE)
-expiry_date_entry.pack(pady=10)
+# Adjusted width of the expiry date entry field
+expiry_date_entry = tk.Entry(data_entry_window, font=('calibri', 16), bd=2, relief=tk.GROOVE, width=40)
+expiry_date_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
 # Bind the on-screen keyboard to the expiry date entry field
 expiry_date_entry.bind("<Button-1>", lambda event: open_keyboard(expiry_date_entry))
