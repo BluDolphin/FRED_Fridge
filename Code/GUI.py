@@ -1,8 +1,6 @@
 import tkinter as tk
 from time import strftime, localtime, sleep
-from PIL import Image, ImageTk
 import cv2
-from tkinter import messagebox, Scrollbar
 import threading
 import logging
 import json
@@ -26,7 +24,7 @@ picam2 = None  # Declare picamera instance globally
 rawCapture = None  # Declare PiRGBArray instance globally
 camera_window = None  # Reference to the camera window
 
-# Load data ------------------------------------------------------------
+# Load data ========================================================================================
 logging.debug("Loading data")
 
 # If file exists then load data
@@ -53,6 +51,7 @@ def saveData():  # Save data function
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
 
+#===================================================================================================
 # Function to update the time and date
 def update_time_and_date():
     time_str = strftime('%H:%M %p', localtime())
@@ -207,22 +206,24 @@ def continue_data_entry():
 def barcode_reader():
     # Take an image every second and read data
     while True:
-        picam2.start()
-        picam2.capture_file("Barcode.jpg")
-        
-        # Read the image from the provided file path
-        image = cv2.imread("Barcode.jpg")
-        # Decode barcodes from the image using pyzbar
-        barcodes = pyzbar.decode(image)
-        # Iterate through detected barcodes and extract data from the barcode 
-        for barcode in barcodes:
-            # uses UTF-8 encoding
-            barcodeData = barcode.data.decode("utf-8")
-            logging.debug(f"Barcode: {barcodeData}")
-            if barcodeData.isdigit():
-                picam2.stop()
-                return(barcodeData)
-    
+        try:
+            picam2.start()
+            picam2.capture_file("Barcode.jpg")
+            
+            # Read the image from the provided file path
+            image = cv2.imread("Barcode.jpg")
+            # Decode barcodes from the image using pyzbar
+            barcodes = pyzbar.decode(image)
+            # Iterate through detected barcodes and extract data from the barcode 
+            for barcode in barcodes:
+                # uses UTF-8 encoding
+                barcodeData = barcode.data.decode("utf-8")
+                logging.debug(f"Barcode: {barcodeData}")
+                if barcodeData.isdigit():
+                    picam2.stop()
+                    return(barcodeData)
+        except:
+            print("FUCK")
         sleep(1)
 
 # Function to open camera input
@@ -308,6 +309,8 @@ def close_keyboard():
     if keyboard_window is not None and keyboard_window.winfo_exists():
         keyboard_window.destroy()
 
+
+#BACKGROUND THREAD================================================================================
 def updateEntrys():
     logging.debug("Background thread started")
     exTime = 3  # number of days until purged from database
@@ -338,9 +341,10 @@ def updateEntrys():
                     logging.debug("Next item.....")
 
             saveData()
-        sleep(86400)  # sleep for 24 hours
-
+        sleep(1200)  # sleep for 24 hours
 # Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
+#================================================================================
+
 
 # Create the main application window
 root = tk.Tk()
