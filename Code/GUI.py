@@ -100,7 +100,7 @@ def display_database_contents():
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
-    scrollbar = Scrollbar(database_frame, orient="vertical", command=canvas.yview)
+    scrollbar = tk.Scrollbar(database_frame, orient="vertical", command=canvas.yview)
     scrollbar.pack(side=tk.RIGHT, fill="y")
 
     # Configure the canvas to work with the scrollbar
@@ -129,6 +129,8 @@ def display_database_contents():
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
     back_button_view.pack(pady=(20, 20))  # Adjust padding if necessary
 
+    # Set the geometry of the view window to fit the screen
+    view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
 
 # Function to go back to the main window from the view page
 def back_to_main_from_view():
@@ -337,6 +339,13 @@ def updateEntrys():
 # Create the main application window
 root = tk.Tk()
 root.title("Clock GUI")
+
+# Get the screen width and height
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Set the geometry of the root window to fit the screen
+root.geometry(f"{screen_width}x{screen_height}")
 
 # Set the window to fullscreen
 root.attributes('-fullscreen', True)
