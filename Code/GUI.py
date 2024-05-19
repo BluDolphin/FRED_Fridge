@@ -81,22 +81,22 @@ def display_database_contents():
     for widget in view_window.winfo_children():
         widget.destroy()
 
-    # Create a frame to contain the database headings
-    headings_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=900)  # Adjusted width
-    headings_frame.pack(pady=(150, 10), padx=20)  # Adjust padding as needed
-
-    # Add headings for database
-    headings = ["Barcode ID", "Item Name", "Date Added", "Expiry Date", "Days Left"]
-    for col_index, heading in enumerate(headings):
-        label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18)
-        label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
-       
     # Create a frame to contain the database content with fixed size
     database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=900, height=500)  # Adjusted width and height
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
 
+    # Create a frame for the headings
+    headings_frame = tk.Frame(database_frame, bg='white', bd=2, relief=tk.SOLID, height=30)  # Height adjusted to fit headings
+    headings_frame.pack(fill=tk.X)
+
+    # Add headings for database inside the headings frame
+    headings = ["Barcode ID", "Item Name", "Date Added", "Expiry Date", "Days Left"]
+    for col_index, heading in enumerate(headings):
+        label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
+        label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
+
     # Create a canvas to contain the database content
-    canvas = tk.Canvas(database_frame, bg='white', width=880, height=480)  # Adjusted width
+    canvas = tk.Canvas(database_frame, bg='white', width=880, height=470)  # Adjusted height to fit remaining space
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
@@ -125,9 +125,16 @@ def display_database_contents():
     # Bind mousewheel to the canvas for scrolling
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
 
+    # Calculate the center coordinates of the view window
+    center_x = (view_window.winfo_width() - database_frame.winfo_reqwidth()) / 2
+    center_y = (view_window.winfo_height() - database_frame.winfo_reqheight()) / 2
+
+    # Place the database frame at the center of the view window
+    database_frame.place(x=center_x, y=center_y)
+
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
-    back_button_view.pack(pady=(20, 20))  # Adjust padding if necessary
+    back_button_view.place(relx=0.5, rely=0.9, anchor='s')  # Place the button at the bottom center
 
     # Set the geometry of the view window to fit the screen
     view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
@@ -450,4 +457,3 @@ view_window.withdraw()
 
 # Run the Tkinter event loop
 root.mainloop()
-
