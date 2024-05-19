@@ -10,6 +10,7 @@ import os
 import datetime
 from tkinter import Scrollbar
 
+#Try to setup the pi camera if running on pi
 try:
     from picamera2 import Picamera2
     picam2 = Picamera2()         
@@ -17,6 +18,8 @@ try:
     picam2.configure(camera_config)
 except:
     logging.debug("Not running on pi")
+
+keyboard_window = None  # Reference to the keyboard window
 
 # Global variables
 picam2 = None  # Declare picamera instance globally
@@ -193,39 +196,26 @@ def continue_data_entry():
     open_camera()
 
 def barcode_reader():
-    global picam2, rawCapture
-    try:
-        picam2 = PiCamera()
-        picam2.resolution = (640, 480)
-        picam2.framerate = 32
-        rawCapture = PiRGBArray(picam2, size=(640, 480))
+   def getBarcode():
+    # Take an image every second and read data
+    while True:
+        picam2.start()
+        picam2.capture_file("Barcode.jpg")
         
-        for frame in picam2.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            image = frame.array
-            cv2image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(cv2image)
-            imgtk = ImageTk.PhotoImage(image=img)
-            camera_label.imgtk = imgtk
-            camera_label.configure(image=imgtk)
-            
-            barcodes = pyzbar.decode(image)
-            for barcode in barcodes:
-                barcodeData = barcode.data.decode("utf-8")
-                logging.debug(f"Barcode: {barcodeData}")
-                if barcodeData.isdigit():
-                    rawCapture.truncate(0)
-                    picam2.close()
-                    camera_window.withdraw()
-                    product_name_entry.insert(0, "Detected Item")  # Placeholder
-                    expiry_date_entry.insert(0, "10")  # Placeholder
-                    continue_data_entry()  # Directly call continue_data_entry
-                    return  # Exit the function after processing the barcode
-
-            rawCapture.truncate(0)
-    except Exception as e:
-        logging.error(f"Error in barcode reader: {e}")
-        messagebox.showerror("Error", "Camera initialization failed. Please enter data manually.")
-        close_camera()  # Ensure the data entry window can still be accessed
+        # Read the image from the provided file path
+        image = cv2.imread("Barcode.jpg")
+        # Decode barcodes from the image using pyzbar
+        barcodes = pyzbar.decode(image)
+        # Iterate through detected barcodes and extract data from the barcode 
+        for barcode in barcodes:
+            # uses UTF-8 encoding
+            barcodeData = barcode.data.decode("utf-8")
+            logging.debug(f"Barcode: {barcodeData}")
+            if barcodeData.isdigit():
+                picam2.stop()
+                return(barcodeData)
+    
+        time.sleep(1)
 
 # Function to open camera input
 def open_camera():
@@ -451,3 +441,4 @@ view_window.withdraw()
 
 # Run the Tkinter event loop
 root.mainloop()
+
