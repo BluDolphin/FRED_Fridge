@@ -82,7 +82,7 @@ def display_database_contents():
         widget.destroy()
 
     # Create a frame to contain the database content with fixed size
-    database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=900, height=500)  # Adjusted width and height
+    database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=920, height=500)  # Increased width slightly
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
 
     # Create a frame for the headings
@@ -96,7 +96,7 @@ def display_database_contents():
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
     # Create a canvas to contain the database content
-    canvas = tk.Canvas(database_frame, bg='white', width=880, height=470)  # Adjusted height to fit remaining space
+    canvas = tk.Canvas(database_frame, bg='white', width=900, height=470)  # Increased width slightly
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
@@ -115,7 +115,7 @@ def display_database_contents():
         for col_index, col_value in enumerate(row.values()):
             tk.Label(content_frame, text=col_value, font=('calibri', 12), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18).grid(row=row_index, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
-        delete_button = tk.Button(content_frame, text="Delete", command=lambda idx=row_index - 1: delete_item(idx), font=('calibri', 10), bg='red', fg='white', width=10)  # Adjust width of button
+        delete_button = tk.Button(content_frame, text="Delete", command=lambda idx=row_index - 1: delete_item(idx), font=('calibri', 10), bg='red', fg='white', width=12)  # Increased width of button
         delete_button.grid(row=row_index, column=len(row), padx=2, pady=2, sticky='e')  # Reduced padding
 
     # Update scroll region to make the scrollbar work
