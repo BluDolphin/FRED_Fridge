@@ -12,6 +12,7 @@ if os.environ.get('DISPLAY','') == '':
 #GLOBAL VARIABLES==================================================================================
 #barcodeData - line 183
 #life - line 209
+#itemName - line 328
 
 #Try to setup the pi camera if running on pi
 try:
@@ -77,6 +78,7 @@ def display_database_contents():
     database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=920, height=500)  # Increased width slightly
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
 
+
     # Create a frame for the headings
     headings_frame = tk.Frame(database_frame, bg='white', bd=2, relief=tk.SOLID, height=30)  # Height adjusted to fit headings
     headings_frame.pack(fill=tk.X)
@@ -86,6 +88,7 @@ def display_database_contents():
     for col_index, heading in enumerate(headings):
         label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
+
 
     # Create a canvas to contain the database content
     canvas = tk.Canvas(database_frame, bg='white', width=900, height=470)  # Increased width slightly
@@ -98,12 +101,13 @@ def display_database_contents():
     # Configure the canvas to work with the scrollbar
     canvas.configure(yscrollcommand=scrollbar.set)
 
+
     # Create a frame to hold the actual content of the database
     content_frame = tk.Frame(canvas, bg='white')  # No need to specify width and height
     canvas.create_window((0, 0), window=content_frame, anchor='nw')
 
     # Add data rows
-    for row_index, row in enumerate(database, start=1):  # Start with row 1 after headings
+    for row_index, row in enumerate(database, start=0):  # Start with row 0
         for col_index, col_value in enumerate(row.values()):
             tk.Label(content_frame, text=col_value, font=('calibri', 12), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18).grid(row=row_index, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
@@ -123,6 +127,7 @@ def display_database_contents():
 
     # Place the database frame at the center of the view window
     database_frame.place(x=center_x, y=center_y)
+
 
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
@@ -144,18 +149,6 @@ def input_data():
     dateAdded = ""
     expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
-    
-    # Check for item name in cachedItems
-    for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
-            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-            logging.debug(f"Item found: {itemName}")  # debug line
-            break
-    
-    # Get user input for itemName if not found in cachedItems
-    if itemName == "":
-        cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
-        logging.debug(f"{cachedItems}")  # debug line
         
 
     # Get current date and calculate expiry date
@@ -176,7 +169,7 @@ def input_data():
 
     # Hide data entry window and show the camera window again
     data_entry_window.withdraw()
-    camera_window.deiconify()
+    open_camera()
     
 
 # ===== barcode_reader ==========================================================
@@ -302,7 +295,6 @@ def open_camera():
     camera_window.deiconify()  # Show the camera window
     threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
 
-    
 # Function to close camera input
 def close_camera(par=0):
     global root, camera_window, life
@@ -334,8 +326,10 @@ def update_image():
     
 # Data Entry-------------------------------------------------------------------------------------
 # Function to go to data entry page from the register page
+itemName = ""
 def data_entry_click():
     clear_entry_fields()  # Clear entry fields
+    
     data_entry_window.deiconify()  # Show the data entry window
 
 # Function to go back to the main menu from the data entry page
@@ -350,7 +344,7 @@ def clear_entry_fields():
     product_name_entry.delete(0, tk.END)
     expiry_date_entry.delete(0, tk.END)    
 
-
+  
 # View -------------------------------------------------------------------------------------
 # Function to go back to the main window from the view page
 def back_to_main_from_view():
@@ -421,10 +415,10 @@ data_entry_window.title("Data Entry Page")
 data_entry_window.attributes('-fullscreen', True)  # Set data entry window to fullscreen
 data_entry_window.configure(bg='white')
 
+
 # Create a label for the data entry page
 data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 48), bg='white', fg='black')  # Increased font size
 data_entry_label.pack(pady=(70, 20))  # Further increase top and bottom padding
-
 
 # Create input field for product name
 product_name_label = tk.Label(data_entry_window, text="Product Name:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
@@ -433,6 +427,17 @@ product_name_label.pack(pady=(50, 10))  # Increased top padding
 # Adjusted width of the product name entry field
 product_name_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, relief=tk.GROOVE, width=40)  # Increased font size
 product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
+
+for i in cachedItems:  # SQL - get all items from cachedItems
+    if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
+        itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
+        logging.debug(f"Item found: {itemName}")  # debug line
+        break
+        
+# Get user input for itemName if not found in cachedItems
+if itemName == "":
+    cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+    logging.debug(f"{cachedItems}")  # debug line
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
