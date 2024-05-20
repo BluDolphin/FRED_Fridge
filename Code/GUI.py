@@ -160,7 +160,6 @@ def input_data():
     # Get user input for itemName if not found in cachedItems
     if cached == False:
         itemName = product_name_entry.get()
-        saveData()
         logging.debug(f"{cachedItems}")  # debug line
         
     # Get current date and calculate expiry date
@@ -231,7 +230,10 @@ def barcode_reader():
 
 # ===== Keyboard ===============================================================
 def open_keyboard(entry):
-    global keyboard_window
+    global keyboard_window, nameFieldLocked
+    if nameFieldLocked == True:
+        close_keyboard()
+    
     if keyboard_window is None or not keyboard_window.winfo_exists():
         keyboard_window = tk.Toplevel()
         keyboard_window.title("On-Screen Keyboard")
@@ -350,9 +352,11 @@ def update_image():
 # Function to go to data entry page from the register page
 itemName = ""
 cached = False
+nameFieldLocked = False
 def data_entry_click():
-    global itemName, cached
+    global itemName, cached, nameFieldLocked
     cached = False
+    nameFieldLocked = False
     
     #CHECK IF ITEM IS IN CACHED ITEMS
     clear_entry_fields()  # Clear entry fields
@@ -362,7 +366,11 @@ def data_entry_click():
             cached = True
             logging.debug(f"Item found: {itemName}")  # debug line
             break
-
+    if cached == True:
+        product_name_entry.insert(0, itemName)
+        product_name_entry.config(state='disabled')  # Disable the entry field
+        nameFieldLocked = True
+        
     data_entry_window.deiconify()  # Show the data entry window
 
 # Function to go back to the main menu from the data entry page
@@ -464,7 +472,7 @@ product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the e
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
-
+#fill product name entry field if item is in cached items
 
 # Create input field for expiry date
 expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
