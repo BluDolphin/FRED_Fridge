@@ -1,6 +1,6 @@
 import tkinter as tk
 from time import strftime, localtime, sleep
-import cv2, threading, logging, json, os, datetime
+import cv2, threading, logging, json, os, datetime, sys
 from pyzbar import pyzbar
 from PIL import ImageTk, Image
 
@@ -62,7 +62,6 @@ def update_time_and_date():
     time_label.config(text=time_str)
     date_label.config(text=date_str)
     time_label.after(1000, update_time_and_date)  # Update time every second
-
 
 def display_database_contents():
     def delete_item(index):
@@ -132,18 +131,17 @@ def display_database_contents():
     view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
 
 
-
+#==== input_data ===============================================================================
 # Function to continue from data entry page
 def input_data():
     close_keyboard()  # Close the keyboard window
     
     # Retireve data 
-    BarcodeData = str(BarcodeData)  # GLobal variable
+    BarcodeData = 1234  # GLobal variable
     itemName = product_name_entry.get()
     dateAdded = ""
     expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
-    
     
     # Check for item name in cachedItems
     for i in cachedItems:  # SQL - get all items from cachedItems
@@ -167,7 +165,6 @@ def input_data():
     expiryDate = expiryDate.strftime("%Y-%m-%d")
 
     
-
     logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
     # SQL - add new entry to database
     database.append({"barcodeID": BarcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
@@ -183,8 +180,12 @@ def input_data():
 # ===== barcode_reader ==========================================================
 BarcodeData = 0 #Placeholder
 def barcode_reader():
+    global life
     # Take an image every second and read data
     while True:
+        if life != 1:
+            sys.exit()
+        
         try:
             picam2.start()
             picam2.capture_file("Barcode.jpg")
@@ -204,7 +205,6 @@ def barcode_reader():
                 if barcodeData.isdigit():
                     picam2.stop()
                     close_camera("forward")
-                    return
         except:
             print("FUCK")
             update_image()
@@ -292,15 +292,16 @@ def view_click(): # Function to handle view button click event
     
 # camera-------------------------------------------------------------------------------------
 # Function to open camera input
+life = 1
 def open_camera():
     global camera_window
     camera_window.deiconify()  # Show the camera window
     threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
     
-    
 # Function to close camera input
 def close_camera(par=0):
-    global root, camera_window
+    global root, camera_window, life
+    life = 0
     try:
         picam2.stop()
     except:
@@ -314,7 +315,9 @@ def close_camera(par=0):
 
 panel = None
 def update_image():
-    global panel  # Declare panel as global so we can modify it
+    global panel, life  # Declare panel as global so we can modify it
+    if life != 1:
+        sys.exit()
     # Destroy the previous panel if it exists
     if panel is not None:
         panel.destroy()
@@ -399,7 +402,6 @@ camera_window = tk.Toplevel(root)
 camera_window.title("Camera Feed")
 camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
-
 
 
 # Create a button to close the camera
