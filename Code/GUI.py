@@ -4,6 +4,7 @@ import cv2, threading, logging, json, os, datetime, sys
 from pyzbar import pyzbar
 from PIL import ImageTk, Image
 
+logging.basicConfig(level=logging.DEBUG)
 # DISPLAY SETUP=====================================================================================
 if os.environ.get('DISPLAY','') == '':
     print('no display found. Using :0.0')
