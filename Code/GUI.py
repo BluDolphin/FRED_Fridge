@@ -270,7 +270,7 @@ def barcode_reader():
 
 # ===== Keyboard ===============================================================
 def open_keyboard(entry, box=""):
-    global keyboard_window, nameFieldLocked
+    global keyboard_window, nameFieldLocked, barcodeData
 
     close_keyboard() # Close previous keyboard instance 
     if nameFieldLocked == True and box == "name": # If clicked on the locked name text box
@@ -394,19 +394,20 @@ itemName = ""
 cached = False
 nameFieldLocked = False
 def data_entry_click():
-    global itemName, cached, nameFieldLocked
+    global itemName, cached, nameFieldLocked, barcodeData
     cached = False
     nameFieldLocked = False
     
     #CHECK IF ITEM IS IN CACHED ITEMS
     clear_entry_fields()  # Clear entry fields
     for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
+        if i["barcodeID"] == barcodeData and barcodeData != 0:  # SQL - if barcodeID is found and not fallback
             itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
             cached = True
             logging.debug(f"Item found: {itemName}")  # debug line
             break
-    if cached == True:
+        
+    if cached == True and barcodeData != 0: # If item is in cached items and not fallback
         product_name_entry.insert(0, itemName)
         product_name_entry.config(state='disabled')  # Disable the entry field
         nameFieldLocked = True
