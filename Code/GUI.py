@@ -182,7 +182,8 @@ def input_data():
 BarcodeData = 0 #Placeholder=
 def barcode_reader():
     global life
-
+    life = 1
+    
     # Take an image every second and read data
     while True:
         if life != 1:
