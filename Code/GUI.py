@@ -10,7 +10,8 @@ if os.environ.get('DISPLAY','') == '':
     os.environ.__setitem__('DISPLAY', ':0.0')
     
 #GLOBAL VARIABLES==================================================================================
-#BarcodeData - line 208
+#barcodeData - line 183
+#life - line 209
 
 #Try to setup the pi camera if running on pi
 try:
@@ -134,11 +135,11 @@ def display_database_contents():
 #==== input_data ===============================================================================
 # Function to continue from data entry page
 def input_data():
-    global BarcodeData, itemName, dateAdded, expiryDate, daysLeft
+    global barcodeData, itemName, dateAdded, expiryDate, daysLeft
     close_keyboard()  # Close the keyboard window
     
     # Retireve data 
-    BarcodeData = int(BarcodeData)  # GLobal variable
+    barcodeData = int(barcodeData)  # GLobal variable
     itemName = product_name_entry.get()
     dateAdded = ""
     expiryDate = ""
@@ -146,14 +147,14 @@ def input_data():
     
     # Check for item name in cachedItems
     for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == BarcodeData:  # SQL - if barcodeID is found
+        if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
             itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
             logging.debug(f"Item found: {itemName}")  # debug line
             break
     
     # Get user input for itemName if not found in cachedItems
     if itemName == "":
-        cachedItems.append({"barcodeID": BarcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+        cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
         logging.debug(f"{cachedItems}")  # debug line
         
 
@@ -168,7 +169,7 @@ def input_data():
     
     logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
     # SQL - add new entry to database
-    database.append({"barcodeID": BarcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+    database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
 
     # Save data to JSON file
     saveData()
@@ -179,9 +180,10 @@ def input_data():
     
 
 # ===== barcode_reader ==========================================================
-BarcodeData = 0 #Placeholder=
+barcodeData = 0 #Defualt value for barcode data
 def barcode_reader():
-    global life
+    global life, barcodeData
+    barcodeData = 0 
     life = 1
     
     # Take an image every second and read data
@@ -404,7 +406,6 @@ camera_window.title("Camera Feed")
 camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
 
-
 # Create a button to close the camera
 close_camera_button = tk.Button(camera_window, text="Close Camera", command=close_camera, font=('calibri', 18), borderwidth=3)
 close_camera_button.pack(pady=10)  # Center the button below the camera
@@ -424,6 +425,7 @@ data_entry_window.configure(bg='white')
 data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 48), bg='white', fg='black')  # Increased font size
 data_entry_label.pack(pady=(70, 20))  # Further increase top and bottom padding
 
+
 # Create input field for product name
 product_name_label = tk.Label(data_entry_window, text="Product Name:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
 product_name_label.pack(pady=(50, 10))  # Increased top padding
@@ -434,6 +436,7 @@ product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the e
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
+
 
 # Create input field for expiry date
 expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
@@ -446,9 +449,11 @@ expiry_date_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the en
 # Bind the on-screen keyboard to the expiry date entry field
 expiry_date_entry.bind("<Button-1>", lambda event: open_keyboard(expiry_date_entry))
 
+
 # Create a button to continue from data entry page
 continue_button = tk.Button(data_entry_window, text="Continue", command=input_data, font=('calibri', 18), borderwidth=3)
 continue_button.pack(pady=50)  # Increased top padding
+
 
 # Create a button to go back to the main menu from the data entry page
 back_button_data_entry = tk.Button(data_entry_window, text="Back to Menu", command=back_to_main_menu_from_data_entry, font=('calibri', 18), borderwidth=3)
