@@ -52,6 +52,7 @@ logging.debug(f"database: {database}")
 
 # Save data ------------------------------------------------------------
 def saveData():  # Save data function
+    global cachedItems, database
     logging.debug("Saving data")
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
@@ -435,8 +436,9 @@ for i in cachedItems:  # SQL - get all items from cachedItems
         break
         
 # Get user input for itemName if not found in cachedItems
-if itemName == "":
+if itemName == "" and barcodeData != 0:
     cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+    saveData()
     logging.debug(f"{cachedItems}")  # debug line
 
 # Bind the on-screen keyboard to the product name entry field
