@@ -1,15 +1,14 @@
 import tkinter as tk
 from time import strftime, localtime, sleep
-import cv2
-import threading
-import logging
-import json
-import os
-import datetime
-
-
+import cv2, threading, logging, json, os, datetime
+from pyzbar import pyzbar
 from PIL import ImageTk, Image
 
+# DISPLAY SETUP=====================================================================================
+if os.environ.get('DISPLAY','') == '':
+    print('no display found. Using :0.0')
+    os.environ.__setitem__('DISPLAY', ':0.0')
+    
 #GLOBAL VARIABLES==================================================================================
 #BarcodeData - line 208
 
@@ -191,6 +190,12 @@ def barcode_reader():
             
             # Read the image from the provided file path
             image = cv2.imread("Barcode.jpg")
+            
+            #show image when camera takes photo
+            img = ImageTk.PhotoImage(Image.open("Barcode.jpg"))
+            panel = tk.Label(camera_window, image=img)
+            panel.pack(padx=10, pady=10)
+            
             # Decode barcodes from the image using pyzbar
             barcodes = pyzbar.decode(image)
             # Iterate through detected barcodes and extract data from the barcode 
@@ -378,10 +383,7 @@ camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
 
 
-#show image when camera takes photo
-img = ImageTk.PhotoImage(Image.open("barcode.jpg"))
-panel = tk.Label(camera_window, image=img)
-panel.pack(padx=10, pady=10)
+
 
 
 # Create a button to close the camera
