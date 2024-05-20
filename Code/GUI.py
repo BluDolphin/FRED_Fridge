@@ -13,7 +13,8 @@ if os.environ.get('DISPLAY','') == '':
 #GLOBAL VARIABLES==================================================================================
 #barcodeData - line 183
 #life - line 209
-#itemName - line 328
+#itemName - line 344
+#cached - line 345
 
 #Try to setup the pi camera if running on pi
 try:
@@ -28,7 +29,7 @@ keyboard_window = None  # Reference to the keyboard window
 
 # Global variables
 rawCapture = None  # Declare PiRGBArray instance globally
-camera_window = None  # Reference to the camera window
+camera_window = None  # Reference to the came5ra window
 
 # Load data ========================================================================================
 logging.debug("Loading data")
@@ -54,6 +55,11 @@ logging.debug(f"database: {database}")
 # Save data ------------------------------------------------------------
 def saveData():  # Save data function
     global cachedItems, database
+    
+    # SQL - add new entry to database
+    cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+    database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+
     logging.debug("Saving data")
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
@@ -142,17 +148,21 @@ def display_database_contents():
 #==== input_data ===============================================================================
 # Function to continue from data entry page
 def input_data():
-    global barcodeData, itemName, dateAdded, expiryDate, daysLeft
+    global barcodeData, itemName, dateAdded, expiryDate, daysLeft, cached
     close_keyboard()  # Close the keyboard window
-    
+        
     # Retireve data 
     barcodeData = int(barcodeData)  # GLobal variable
-    itemName = product_name_entry.get()
     dateAdded = ""
     expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
         
-
+    # Get user input for itemName if not found in cachedItems
+    if cached == False:
+        itemName = product_name_entry.get()
+        saveData()
+        logging.debug(f"{cachedItems}")  # debug line
+        
     # Get current date and calculate expiry date
     dateAdded = datetime.datetime.now()
     expiryDate = dateAdded + datetime.timedelta(days=daysLeft)
@@ -163,8 +173,6 @@ def input_data():
 
     
     logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
-    # SQL - add new entry to database
-    database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
 
     # Save data to JSON file
     saveData()
@@ -180,9 +188,11 @@ def barcode_reader():
     global life, barcodeData
     barcodeData = 0 
     life = 1
+    counter = 0 #Counter for failed reads max attempts 5
     
     # Take an image every second and read data
     while True:
+        
         if life != 1:
             sys.exit()
         
@@ -190,7 +200,8 @@ def barcode_reader():
             picam2.start()
             picam2.capture_file("Barcode.jpg")
             
-
+            update_image()
+            
             # Read the image from the provided file path
             image = cv2.imread("Barcode.jpg")
             
@@ -206,7 +217,16 @@ def barcode_reader():
                     close_camera("forward")
         except:
             print("FUCK")
-        update_image()
+            counter += 1
+            if counter >= 5:
+                barcodeData = 0
+                try:
+                    picam2.stop()
+                except:
+                    pass
+                close_camera("forward")
+                
+        
         sleep(1)
 
 # ===== Keyboard ===============================================================
@@ -306,7 +326,7 @@ def close_camera(par=0):
     except:
         logging.debug("Already stopped/Not running on pi")
     camera_window.withdraw()
-    
+
     if par == "forward":
         data_entry_click()
     else:
@@ -329,9 +349,20 @@ def update_image():
 # Data Entry-------------------------------------------------------------------------------------
 # Function to go to data entry page from the register page
 itemName = ""
+cached = False
 def data_entry_click():
-    clear_entry_fields()  # Clear entry fields
+    global itemName, cached
+    cached = False
     
+    #CHECK IF ITEM IS IN CACHED ITEMS
+    clear_entry_fields()  # Clear entry fields
+    for i in cachedItems:  # SQL - get all items from cachedItems
+        if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
+            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
+            cached = True
+            logging.debug(f"Item found: {itemName}")  # debug line
+            break
+
     data_entry_window.deiconify()  # Show the data entry window
 
 # Function to go back to the main menu from the data entry page
@@ -430,17 +461,6 @@ product_name_label.pack(pady=(50, 10))  # Increased top padding
 product_name_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, relief=tk.GROOVE, width=40)  # Increased font size
 product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
-for i in cachedItems:  # SQL - get all items from cachedItems
-    if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
-        itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-        logging.debug(f"Item found: {itemName}")  # debug line
-        break
-        
-# Get user input for itemName if not found in cachedItems
-if itemName == "" and barcodeData != 0:
-    cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
-    saveData()
-    logging.debug(f"{cachedItems}")  # debug line
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
