@@ -39,8 +39,8 @@ if os.path.exists("FRED-Data.json"):
 # If file does not exist then create new file  
 else:
     logging.debug("File not found, creating new file")
-    cachedItems = [{"barcodeID": "header1", "itemName": "header2"}]  # SQL - cachedItems
-    database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}]  # SQL - database
+    cachedItems = []  # SQL - cachedItems
+    database = []  # SQL - database
 
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)
@@ -179,7 +179,8 @@ def input_data():
     data_entry_window.withdraw()
     camera_window.deiconify()
     
-    
+
+# ===== barcode_reader ==========================================================
 BarcodeData = 0 #Placeholder
 def barcode_reader():
     # Take an image every second and read data
@@ -188,13 +189,10 @@ def barcode_reader():
             picam2.start()
             picam2.capture_file("Barcode.jpg")
             
+            threading.Thread(target=update_image).start()
+             
             # Read the image from the provided file path
             image = cv2.imread("Barcode.jpg")
-            
-            #show image when camera takes photo
-            img = ImageTk.PhotoImage(Image.open("Barcode.jpg"))
-            panel = tk.Label(camera_window, image=img)
-            panel.pack(padx=10, pady=10)
             
             # Decode barcodes from the image using pyzbar
             barcodes = pyzbar.decode(image)
@@ -209,9 +207,10 @@ def barcode_reader():
                     return
         except:
             print("FUCK")
+            update_image()
         sleep(1)
 
-
+# ===== Keyboard ===============================================================
 def open_keyboard(entry):
     global keyboard_window
     if keyboard_window is None or not keyboard_window.winfo_exists():
@@ -278,7 +277,6 @@ def close_keyboard():
         keyboard_window.destroy()
 
 
-
 #======WINDOW COMMANDS======================================================================================
 # main menu-------------------------------------------------------------------------------------
 def register_click(): # Function to handle register button click event
@@ -293,6 +291,13 @@ def view_click(): # Function to handle view button click event
     display_database_contents()  # Display database contents
     
 # camera-------------------------------------------------------------------------------------
+# Function to open camera input
+def open_camera():
+    global camera_window
+    camera_window.deiconify()  # Show the camera window
+    threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
+    
+    
 # Function to close camera input
 def close_camera(par=0):
     global root, camera_window
@@ -307,6 +312,20 @@ def close_camera(par=0):
     else:
         root.deiconify()
 
+panel = None
+def update_image():
+    global panel  # Declare panel as global so we can modify it
+    # Destroy the previous panel if it exists
+    if panel is not None:
+        panel.destroy()
+
+    # Show image when camera takes photo
+    img = ImageTk.PhotoImage(Image.open("Barcode.jpg"))
+    panel = tk.Label(camera_window, image=img)
+    panel.image = img  # Keep a reference to the image to prevent it from being garbage collected
+    panel.pack(padx=10, pady=10)
+    sleep(1)
+    
 # Data Entry-------------------------------------------------------------------------------------
 # Function to go to data entry page from the register page
 def data_entry_click():
@@ -331,7 +350,6 @@ def clear_entry_fields():
 def back_to_main_from_view():
     view_window.withdraw()  # Hide the view window
     root.deiconify()  # Show the main window
-
 
 
 #======WINDOWS======================================================================================
@@ -381,8 +399,6 @@ camera_window = tk.Toplevel(root)
 camera_window.title("Camera Feed")
 camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
-
-
 
 
 
@@ -473,21 +489,20 @@ def updateEntrys():
             currentDate = newDate  # Update currentDate if it's a new day
 
             for i in database:
-                if i["daysLeft"] != "header5":  # TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
-                    expiryDate = i["expiryDate"]
-                    # find the difference between the expiry date and the current date
-                    daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
+                expiryDate = i["expiryDate"]
+                # find the difference between the expiry date and the current date
+                daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
 
-                    if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
-                        database.remove(i)  # delete entry
-                        logging.debug(f"Item: {i['itemName']} removed - days left expired")
-                        continue
-                    else:
-                        i["daysLeft"] = daysLeft
-                        logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
-                        logging.debug(f"{i}")
+                if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
+                    database.remove(i)  # delete entry
+                    logging.debug(f"Item: {i['itemName']} removed - days left expired")
+                    continue
+                else:
+                    i["daysLeft"] = daysLeft
+                    logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
+                    logging.debug(f"{i}")
 
-                    logging.debug("Next item.....")
+                logging.debug("Next item.....")
 
             saveData()
         sleep(1200)  # sleep for 24 hours
