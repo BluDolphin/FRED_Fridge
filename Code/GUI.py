@@ -40,29 +40,69 @@ if os.path.exists("FRED-Data.json"):
         data = json.load(file)
         cachedItems = data["cachedItems"]
         database = data["database"]
+        lastChecked = data["lastChecked"]
 # If file does not exist then create new file  
 else:
     logging.debug("File not found, creating new file")
     cachedItems = []  # SQL - cachedItems
     database = []  # SQL - database
+    lastChecked = datetime.datetime.now().strftime("%Y-%m-%d")  # SQL - lastChecked
 
     with open("FRED-Data.json", "wt") as file:
-        json.dump({"cachedItems": cachedItems, "database": database}, file)
+        json.dump({"cachedItems": cachedItems, "database": database, "lastChecked": lastChecked}, file)
 
 logging.debug(f"cachedItems: {cachedItems}")
 logging.debug(f"database: {database}")
 
 # Save data ------------------------------------------------------------
-def saveData():  # Save data function
-    global cachedItems, database
+def saveData(newEntry=""):  # Save data function
+    global cachedItems, database, lastChecked
     
-    # SQL - add new entry to database
-    cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
-    database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
-
+    if newEntry == "newEntry": # If new entry is specified
+        # SQL - add new entry to database
+        cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+        database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+    
     logging.debug("Saving data")
     with open("FRED-Data.json", "wt") as file:
-        json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
+        json.dump({"cachedItems": cachedItems, "database": database, "lastChecked": lastChecked}, file)  # Save data to file
+
+#BACKGROUND THREAD================================================================================
+def updateEntrys():
+    global lastChecked, database
+    
+    logging.debug("Background thread started")
+    exTime = 3  # number of days until purged from database
+
+    while True:
+        logging.debug("Checking items.....")
+        # Update currentDate in each iteration
+        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        if newDate != lastChecked:
+            lastChecked = newDate  # Update currentDate if it's a new day
+
+            for i in database.copy(): # Create a copy for iteration to avoide skipping indexes when item gets removed
+                expiryDate = i["expiryDate"]
+                # find the difference between the expiry date and the current date
+                daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(lastChecked, "%Y-%m-%d")).days
+
+                if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
+                    database.remove(i)  # delete entry
+                    logging.debug(f"Item: {i['itemName']} removed - days left expired")
+                else:
+                    # Update daysLeft in the spesific item
+                    i.update({"daysLeft": daysLeft})
+                    
+                    logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
+                    logging.debug(f"{i}")
+
+                logging.debug("Next item.....")
+                
+            saveData()
+        sleep(20)  # sleep for 10 mins
+# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
+threading.Thread(target=updateEntrys, daemon=True).start()  # Start the background thread
 
 #===================================================================================================
 # Function to update the time and date
@@ -76,7 +116,7 @@ def update_time_and_date():
 def display_database_contents():
     def delete_item(index):
         del database[index]
-        saveData()
+        saveData("newEntry")
         display_database_contents()  # Refresh the view after deletion
 
     for widget in view_window.winfo_children():
@@ -174,7 +214,7 @@ def input_data():
     logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
 
     # Save data to JSON file
-    saveData()
+    saveData("newEntry")
 
     # Hide data entry window and show the camera window again
     data_entry_window.withdraw()
@@ -229,10 +269,13 @@ def barcode_reader():
         sleep(1)
 
 # ===== Keyboard ===============================================================
-def open_keyboard(entry):
+def open_keyboard(entry, box=""):
     global keyboard_window, nameFieldLocked
-    if nameFieldLocked == True:
-        close_keyboard()
+
+    close_keyboard() # Close previous keyboard instance 
+    if nameFieldLocked == True and box == "name": # If clicked on the locked name text box
+        return # Return
+    
     
     if keyboard_window is None or not keyboard_window.winfo_exists():
         keyboard_window = tk.Toplevel()
@@ -302,10 +345,8 @@ def close_keyboard():
 # main menu-------------------------------------------------------------------------------------
 def register_click(): # Function to handle register button click event
     root.withdraw()  # Hide the main window
-    camera_window.deiconify() # Open the camera when register button is clicked
-    threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
-    
-  
+    open_camera()
+
 def view_click(): # Function to handle view button click event
     root.withdraw()  # Hide the main window
     view_window.deiconify()  # Show the view window
@@ -315,7 +356,6 @@ def view_click(): # Function to handle view button click event
 # Function to open camera input
 life = 1
 def open_camera():
-    global camera_window
     camera_window.deiconify()  # Show the camera window
     threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
 
@@ -469,10 +509,10 @@ product_name_label.pack(pady=(50, 10))  # Increased top padding
 product_name_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, relief=tk.GROOVE, width=40)  # Increased font size
 product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
-
 # Bind the on-screen keyboard to the product name entry field
-product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
+product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry, "name"))
 #fill product name entry field if item is in cached items
+
 
 # Create input field for expiry date
 expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
@@ -519,37 +559,3 @@ view_window.withdraw()
 root.mainloop()
 
 
-#BACKGROUND THREAD================================================================================
-def updateEntrys():
-    logging.debug("Background thread started")
-    exTime = 3  # number of days until purged from database
-    currentDate = datetime.datetime.now().strftime("%Y-%m-%d")  # Get current date
-
-    while True:
-        # Update currentDate in each iteration
-        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
-
-        if newDate != currentDate:
-            currentDate = newDate  # Update currentDate if it's a new day
-
-            for i in database:
-                expiryDate = i["expiryDate"]
-                # find the difference between the expiry date and the current date
-                daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
-
-                if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
-                    database.remove(i)  # delete entry
-                    logging.debug(f"Item: {i['itemName']} removed - days left expired")
-                    continue
-                else:
-                    i["daysLeft"] = daysLeft
-                    logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
-                    logging.debug(f"{i}")
-
-                logging.debug("Next item.....")
-
-            saveData()
-        sleep(1200)  # sleep for 24 hours
-# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
-
-threading.Thread(target=updateEntrys, daemon=True).start()  # Start the background thread
