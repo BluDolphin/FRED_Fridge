@@ -190,12 +190,16 @@ def display_database_contents():
 def input_data():
     global barcodeData, itemName, dateAdded, expiryDate, daysLeft, cached
     close_keyboard()  # Close the keyboard window
-        
+    
     # Retireve data 
     barcodeData = int(barcodeData)  # GLobal variable
     dateAdded = ""
     expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
+    
+    #dont allow negative days
+    if daysLeft < 0:
+        return
         
     # Get user input for itemName if not found in cachedItems
     if cached == False:
@@ -270,7 +274,7 @@ def barcode_reader():
 
 # ===== Keyboard ===============================================================
 def open_keyboard(entry, box=""):
-    global keyboard_window, nameFieldLocked, barcodeData
+    global keyboard_window, nameFieldLocked
 
     close_keyboard() # Close previous keyboard instance 
     if nameFieldLocked == True and box == "name": # If clicked on the locked name text box
@@ -394,7 +398,7 @@ itemName = ""
 cached = False
 nameFieldLocked = False
 def data_entry_click():
-    global itemName, cached, nameFieldLocked, barcodeData
+    global itemName, cached, nameFieldLocked
     cached = False
     nameFieldLocked = False
     
@@ -530,7 +534,6 @@ expiry_date_entry.bind("<Button-1>", lambda event: open_keyboard(expiry_date_ent
 # Create a button to continue from data entry page
 continue_button = tk.Button(data_entry_window, text="Continue", command=input_data, font=('calibri', 18), borderwidth=3)
 continue_button.pack(pady=50)  # Increased top padding
-
 
 # Create a button to go back to the main menu from the data entry page
 back_button_data_entry = tk.Button(data_entry_window, text="Back to Menu", command=back_to_main_menu_from_data_entry, font=('calibri', 18), borderwidth=3)
