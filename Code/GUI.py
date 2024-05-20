@@ -134,10 +134,11 @@ def display_database_contents():
 #==== input_data ===============================================================================
 # Function to continue from data entry page
 def input_data():
+    global BarcodeData, itemName, dateAdded, expiryDate, daysLeft
     close_keyboard()  # Close the keyboard window
     
     # Retireve data 
-    BarcodeData = 1234  # GLobal variable
+    BarcodeData = int(BarcodeData)  # GLobal variable
     itemName = product_name_entry.get()
     dateAdded = ""
     expiryDate = ""
@@ -178,9 +179,10 @@ def input_data():
     
 
 # ===== barcode_reader ==========================================================
-BarcodeData = 0 #Placeholder
+BarcodeData = 0 #Placeholder=
 def barcode_reader():
     global life
+
     # Take an image every second and read data
     while True:
         if life != 1:
@@ -190,8 +192,7 @@ def barcode_reader():
             picam2.start()
             picam2.capture_file("Barcode.jpg")
             
-            threading.Thread(target=update_image).start()
-             
+
             # Read the image from the provided file path
             image = cv2.imread("Barcode.jpg")
             
@@ -207,7 +208,7 @@ def barcode_reader():
                     close_camera("forward")
         except:
             print("FUCK")
-            update_image()
+        update_image()
         sleep(1)
 
 # ===== Keyboard ===============================================================
@@ -297,6 +298,7 @@ def open_camera():
     global camera_window
     camera_window.deiconify()  # Show the camera window
     threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
+
     
 # Function to close camera input
 def close_camera(par=0):
@@ -315,9 +317,7 @@ def close_camera(par=0):
 
 panel = None
 def update_image():
-    global panel, life  # Declare panel as global so we can modify it
-    if life != 1:
-        sys.exit()
+    global panel  # Declare panel as global so we can modify it
     # Destroy the previous panel if it exists
     if panel is not None:
         panel.destroy()
