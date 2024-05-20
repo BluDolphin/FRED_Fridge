@@ -97,7 +97,7 @@ def addNewItem():
             logging.debug(f"Item found: {itemName}") # debug line
             break
         
-        
+
     #Get user input for itemName if not found in cachedItems
     if itemName == "":
         itemName = input("Enter item name: ")

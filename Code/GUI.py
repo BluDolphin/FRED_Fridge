@@ -8,6 +8,11 @@ import os
 import datetime
 
 
+from PIL import ImageTk, Image
+
+#GLOBAL VARIABLES==================================================================================
+#BarcodeData - line 208
+
 #Try to setup the pi camera if running on pi
 try:
     from picamera2 import Picamera2
@@ -20,7 +25,6 @@ except:
 keyboard_window = None  # Reference to the keyboard window
 
 # Global variables
-picam2 = None  # Declare picamera instance globally
 rawCapture = None  # Declare PiRGBArray instance globally
 camera_window = None  # Reference to the camera window
 
@@ -60,16 +64,6 @@ def update_time_and_date():
     date_label.config(text=date_str)
     time_label.after(1000, update_time_and_date)  # Update time every second
 
-# Function to handle register button click event
-def register_click():
-    root.withdraw()  # Hide the main window
-    open_camera()  # Open the camera when register button is clicked
-
-# Function to handle view button click event
-def view_click():
-    root.withdraw()  # Hide the main window
-    view_window.deiconify()  # Show the view window
-    display_database_contents()  # Display database contents
 
 def display_database_contents():
     def delete_item(index):
@@ -138,38 +132,32 @@ def display_database_contents():
     # Set the geometry of the view window to fit the screen
     view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
 
-# Function to go back to the main window from the view page
-def back_to_main_from_view():
-    view_window.withdraw()  # Hide the view window
-    root.deiconify()  # Show the main window
 
-# Function to clear the entry fields
-def clear_entry_fields():
-    product_name_entry.delete(0, tk.END)
-    expiry_date_entry.delete(0, tk.END)
-
-# Function to go to data entry page from the register page
-def data_entry_click():
-    clear_entry_fields()  # Clear entry fields
-    data_entry_window.deiconify()  # Show the data entry window
-
-# Function to go back to the main menu from the data entry page
-def back_to_main_menu_from_data_entry():
-    data_entry_window.withdraw()  # Hide the data entry window
-    close_keyboard()  # Close the keyboard window
-    root.deiconify()  # Show the main window
-    clear_entry_fields()  # Clear entry fields
 
 # Function to continue from data entry page
-def continue_data_entry():
+def input_data():
     close_keyboard()  # Close the keyboard window
-
-    # Retrieve entered data
+    
+    # Retireve data 
+    BarcodeData = str(BarcodeData)  # GLobal variable
     itemName = product_name_entry.get()
+    dateAdded = ""
+    expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
-
-    # Generate barcodeID (This should be replaced by actual barcode scanning logic)
-    barcodeID = "1234567890"  # Placeholder
+    
+    
+    # Check for item name in cachedItems
+    for i in cachedItems:  # SQL - get all items from cachedItems
+        if i["barcodeID"] == BarcodeData:  # SQL - if barcodeID is found
+            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
+            logging.debug(f"Item found: {itemName}")  # debug line
+            break
+    
+    # Get user input for itemName if not found in cachedItems
+    if itemName == "":
+        cachedItems.append({"barcodeID": BarcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+        logging.debug(f"{cachedItems}")  # debug line
+        
 
     # Get current date and calculate expiry date
     dateAdded = datetime.datetime.now()
@@ -179,30 +167,21 @@ def continue_data_entry():
     dateAdded = dateAdded.strftime("%Y-%m-%d")
     expiryDate = expiryDate.strftime("%Y-%m-%d")
 
-    # Check for item name in cachedItems
-    for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeID:  # SQL - if barcodeID is found
-            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-            logging.debug(f"Item found: {itemName}")  # debug line
-            break
-
-    # Get user input for itemName if not found in cachedItems
-    if itemName == "":
-        itemName = product_name_entry.get()
-        cachedItems.append({"barcodeID": barcodeID, "itemName": itemName})  # SQL - add new entry to cachedItems
-        logging.debug(f"{cachedItems}")  # debug line
+    
 
     logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
     # SQL - add new entry to database
-    database.append({"barcodeID": barcodeID, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+    database.append({"barcodeID": BarcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
 
     # Save data to JSON file
     saveData()
 
     # Hide data entry window and show the camera window again
     data_entry_window.withdraw()
-    open_camera()
-
+    camera_window.deiconify()
+    
+    
+BarcodeData = 0 #Placeholder
 def barcode_reader():
     # Take an image every second and read data
     while True:
@@ -217,32 +196,16 @@ def barcode_reader():
             # Iterate through detected barcodes and extract data from the barcode 
             for barcode in barcodes:
                 # uses UTF-8 encoding
-                barcodeData = barcode.data.decode("utf-8")
+                barcodeData = barcode.data.decode("utf-8") 
                 logging.debug(f"Barcode: {barcodeData}")
                 if barcodeData.isdigit():
                     picam2.stop()
-                    return(barcodeData)
+                    close_camera("forward")
+                    return
         except:
             print("FUCK")
         sleep(1)
 
-# Function to open camera input
-def open_camera():
-    global picam2, rawCapture
-
-    camera_window.deiconify()  # Show the camera window
-    threading.Thread(target=barcode_reader, daemon=True).start()
-
-# Function to close camera input
-def close_camera():
-    global picam2, rawCapture, camera_window
-    if picam2:
-        picam2.close()  # Close PiCamera
-    if rawCapture:
-        rawCapture.close()  # Close PiRGBArray
-    if camera_window:
-        camera_window.withdraw()  # Hide the camera window
-    data_entry_click()  # Open the data entry window
 
 def open_keyboard(entry):
     global keyboard_window
@@ -310,43 +273,64 @@ def close_keyboard():
         keyboard_window.destroy()
 
 
-#BACKGROUND THREAD================================================================================
-def updateEntrys():
-    logging.debug("Background thread started")
-    exTime = 3  # number of days until purged from database
-    currentDate = datetime.datetime.now().strftime("%Y-%m-%d")  # Get current date
 
-    while True:
-        # Update currentDate in each iteration
-        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
+#======WINDOW COMMANDS======================================================================================
+# main menu-------------------------------------------------------------------------------------
+def register_click(): # Function to handle register button click event
+    root.withdraw()  # Hide the main window
+    camera_window.deiconify() # Open the camera when register button is clicked
+    threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
+    
+  
+def view_click(): # Function to handle view button click event
+    root.withdraw()  # Hide the main window
+    view_window.deiconify()  # Show the view window
+    display_database_contents()  # Display database contents
+    
+# camera-------------------------------------------------------------------------------------
+# Function to close camera input
+def close_camera(par=0):
+    global root, camera_window
+    try:
+        picam2.stop()
+    except:
+        logging.debug("Already stopped/Not running on pi")
+    camera_window.withdraw()
+    
+    if par == "forward":
+        data_entry_click()
+    else:
+        root.deiconify()
 
-        if newDate != currentDate:
-            currentDate = newDate  # Update currentDate if it's a new day
+# Data Entry-------------------------------------------------------------------------------------
+# Function to go to data entry page from the register page
+def data_entry_click():
+    clear_entry_fields()  # Clear entry fields
+    data_entry_window.deiconify()  # Show the data entry window
 
-            for i in database:
-                if i["daysLeft"] != "header5":  # TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
-                    expiryDate = i["expiryDate"]
-                    # find the difference between the expiry date and the current date
-                    daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
+# Function to go back to the main menu from the data entry page
+def back_to_main_menu_from_data_entry():
+    data_entry_window.withdraw()  # Hide the data entry window
+    close_keyboard()  # Close the keyboard window
+    root.deiconify()  # Show the main window
+    clear_entry_fields()  # Clear entry fields
 
-                    if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
-                        database.remove(i)  # delete entry
-                        logging.debug(f"Item: {i['itemName']} removed - days left expired")
-                        continue
-                    else:
-                        i["daysLeft"] = daysLeft
-                        logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
-                        logging.debug(f"{i}")
-
-                    logging.debug("Next item.....")
-
-            saveData()
-        sleep(1200)  # sleep for 24 hours
-# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
-#================================================================================
+# Function to clear the entry fields
+def clear_entry_fields():
+    product_name_entry.delete(0, tk.END)
+    expiry_date_entry.delete(0, tk.END)    
 
 
-# Create the main application window
+# View -------------------------------------------------------------------------------------
+# Function to go back to the main window from the view page
+def back_to_main_from_view():
+    view_window.withdraw()  # Hide the view window
+    root.deiconify()  # Show the main window
+
+
+
+#======WINDOWS======================================================================================
+#-------ROOT-------------------------------------------------------------------------------------
 root = tk.Tk()
 root.title("Clock GUI")
 
@@ -385,15 +369,20 @@ register_button.pack(side='left', padx=50)  # Increase padding for larger button
 view_button = tk.Button(button_frame, text="View", command=view_click, width=20, height=5, font=('calibri', 24, 'bold'), borderwidth=3)
 view_button.pack(side='left', padx=50)  # Increase padding for larger buttons
 
+
+#-------CAMERA INPUT-------------------------------------------------------------------------------------
 # Create a new window for the camera feed
 camera_window = tk.Toplevel(root)
 camera_window.title("Camera Feed")
 camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
 
-# Create label for camera feed
-camera_label = tk.Label(camera_window, bg='white')
-camera_label.pack(anchor='center', expand=True)  # Centralize the camera feed label
+
+#show image when camera takes photo
+img = ImageTk.PhotoImage(Image.open("barcode.jpg"))
+panel = tk.Label(camera_window, image=img)
+panel.pack(padx=10, pady=10)
+
 
 # Create a button to close the camera
 close_camera_button = tk.Button(camera_window, text="Close Camera", command=close_camera, font=('calibri', 18), borderwidth=3)
@@ -402,6 +391,8 @@ close_camera_button.pack(pady=10)  # Center the button below the camera
 # Hide the camera window initially
 camera_window.withdraw()
 
+
+#-------DATA ENTRY-------------------------------------------------------------------------------------
 # Create a new window for the data entry page
 data_entry_window = tk.Toplevel(root)
 data_entry_window.title("Data Entry Page")
@@ -435,7 +426,7 @@ expiry_date_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the en
 expiry_date_entry.bind("<Button-1>", lambda event: open_keyboard(expiry_date_entry))
 
 # Create a button to continue from data entry page
-continue_button = tk.Button(data_entry_window, text="Continue", command=continue_data_entry, font=('calibri', 18), borderwidth=3)
+continue_button = tk.Button(data_entry_window, text="Continue", command=input_data, font=('calibri', 18), borderwidth=3)
 continue_button.pack(pady=50)  # Increased top padding
 
 # Create a button to go back to the main menu from the data entry page
@@ -445,6 +436,8 @@ back_button_data_entry.place(relx=1.0, rely=1.0, anchor='se')  # Place the butto
 # Hide the data entry window initially
 data_entry_window.withdraw()
 
+
+#-------VIEW PAGE-------------------------------------------------------------------------------------
 # Create a new window for the view page
 view_window = tk.Toplevel(root)
 view_window.title("View Page")
@@ -458,5 +451,44 @@ back_button_view.place(relx=1.0, rely=1.0, anchor='se')  # Place the button in t
 # Hide the view window initially
 view_window.withdraw()
 
+
+#Start
 # Run the Tkinter event loop
 root.mainloop()
+
+
+#BACKGROUND THREAD================================================================================
+def updateEntrys():
+    logging.debug("Background thread started")
+    exTime = 3  # number of days until purged from database
+    currentDate = datetime.datetime.now().strftime("%Y-%m-%d")  # Get current date
+
+    while True:
+        # Update currentDate in each iteration
+        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        if newDate != currentDate:
+            currentDate = newDate  # Update currentDate if it's a new day
+
+            for i in database:
+                if i["daysLeft"] != "header5":  # TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
+                    expiryDate = i["expiryDate"]
+                    # find the difference between the expiry date and the current date
+                    daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
+
+                    if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
+                        database.remove(i)  # delete entry
+                        logging.debug(f"Item: {i['itemName']} removed - days left expired")
+                        continue
+                    else:
+                        i["daysLeft"] = daysLeft
+                        logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
+                        logging.debug(f"{i}")
+
+                    logging.debug("Next item.....")
+
+            saveData()
+        sleep(1200)  # sleep for 24 hours
+# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
+
+threading.Thread(target=updateEntrys, daemon=True).start()  # Start the background thread
