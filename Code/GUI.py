@@ -169,7 +169,6 @@ def display_database_contents():
 
     # Bind mousewheel to the canvas for scrolling
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-
     
     database_frame.pack(anchor='center')
 
@@ -185,7 +184,6 @@ def display_database_contents():
 #==== input_data ===============================================================================
 # Function to continue from data entry page
 def input_data():
-    global barcodeData, itemName, dateAdded, expiryDate, daysLeft
     global barcodeData, itemName, dateAdded, expiryDate, daysLeft, cached
     close_keyboard()  # Close the keyboard window
     
