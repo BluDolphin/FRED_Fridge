@@ -100,7 +100,7 @@ def updateEntrys():
                 logging.debug("Next item.....")
                 
             saveData()
-        sleep(20)  # sleep for 10 mins
+        sleep(6000)  # sleep for 10 mins
 # Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
 threading.Thread(target=updateEntrys, daemon=True).start()  # Start the background thread
 
