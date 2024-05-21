@@ -4,6 +4,8 @@ import cv2, threading, logging, json, os, datetime, sys
 from pyzbar import pyzbar
 from PIL import ImageTk, Image
 
+
+logging.basicConfig(level=logging.INFO) #Set logging to info
 # DISPLAY SETUP=====================================================================================
 if os.environ.get('DISPLAY','') == '':
     print('no display found. Using :0.0')
@@ -21,7 +23,7 @@ try:
     camera_config = picam2.create_still_configuration(main={"size": (1920, 1080)})
     picam2.configure(camera_config)
 except:
-    logging.debug("Not running on pi")
+    logging.info("Not running on pi")
 
 keyboard_window = None  # Reference to the keyboard window
 
@@ -30,7 +32,7 @@ rawCapture = None  # Declare PiRGBArray instance globally
 camera_window = None  # Reference to the camera window
 
 # Load data ========================================================================================
-logging.debug("Loading data")
+logging.info("Loading data")
 
 # If file exists then load data
 if os.path.exists("FRED-Data.json"):
@@ -40,20 +42,20 @@ if os.path.exists("FRED-Data.json"):
         database = data["database"]
 # If file does not exist then create new file  
 else:
-    logging.debug("File not found, creating new file")
+    logging.info("File not found, creating new file")
     cachedItems = []  # SQL - cachedItems
     database = []  # SQL - database
 
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)
 
-logging.debug(f"cachedItems: {cachedItems}")
-logging.debug(f"database: {database}")
+logging.info(f"cachedItems: {cachedItems}")
+logging.info(f"database: {database}")
 
 # Save data ------------------------------------------------------------
 def saveData():  # Save data function
     global cachedItems, database
-    logging.debug("Saving data")
+    logging.info("Saving data")
     with open("FRED-Data.json", "wt") as file:
         json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
 
@@ -122,13 +124,7 @@ def display_database_contents():
     # Bind mousewheel to the canvas for scrolling
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
 
-    # Calculate the center coordinates of the view window
-    center_x = (view_window.winfo_width() - database_frame.winfo_reqwidth()) / 2
-    center_y = (view_window.winfo_height() - database_frame.winfo_reqheight()) / 2
-
-    # Place the database frame at the center of the view window
-    database_frame.place(x=center_x, y=center_y)
-
+    database_frame.pack(anchor='center')
 
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
@@ -161,7 +157,7 @@ def input_data():
     expiryDate = expiryDate.strftime("%Y-%m-%d")
 
     
-    logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
+    logging.info(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
     # SQL - add new entry to database
     database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
 
@@ -188,18 +184,20 @@ def barcode_reader():
         try:
             picam2.start()
             picam2.capture_file("Barcode.jpg")
-            
 
             # Read the image from the provided file path
             image = cv2.imread("Barcode.jpg")
+            logging.info("Image captured")
             
             # Decode barcodes from the image using pyzbar
             barcodes = pyzbar.decode(image)
+            logging.info("Barcodes decoded")
+            
             # Iterate through detected barcodes and extract data from the barcode 
             for barcode in barcodes:
                 # uses UTF-8 encoding
                 barcodeData = barcode.data.decode("utf-8") 
-                logging.debug(f"Barcode: {barcodeData}")
+                logging.info(f"Barcode: {barcodeData}")
                 if barcodeData.isdigit():
                     picam2.stop()
                     close_camera("forward")
@@ -303,7 +301,7 @@ def close_camera(par=0):
     try:
         picam2.stop()
     except:
-        logging.debug("Already stopped/Not running on pi")
+        logging.info("Already stopped/Not running on pi")
     camera_window.withdraw()
     
     if par == "forward":
@@ -432,14 +430,14 @@ product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the e
 for i in cachedItems:  # SQL - get all items from cachedItems
     if i["barcodeID"] == barcodeData:  # SQL - if barcodeID is found
         itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-        logging.debug(f"Item found: {itemName}")  # debug line
+        logging.info(f"Item found: {itemName}")  # debug line
         break
         
 # Get user input for itemName if not found in cachedItems
 if itemName == "" and barcodeData != 0:
     cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
     saveData()
-    logging.debug(f"{cachedItems}")  # debug line
+    logging.info(f"{cachedItems}")  # debug line
 
 # Bind the on-screen keyboard to the product name entry field
 product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
@@ -485,14 +483,14 @@ back_button_view.place(relx=1.0, rely=1.0, anchor='se')  # Place the button in t
 view_window.withdraw()
 
 
-#Start
+# START GUI
 # Run the Tkinter event loop
 root.mainloop()
 
 
 #BACKGROUND THREAD================================================================================
 def updateEntrys():
-    logging.debug("Background thread started")
+    logging.info("Background thread started")
     exTime = 3  # number of days until purged from database
     currentDate = datetime.datetime.now().strftime("%Y-%m-%d")  # Get current date
 
@@ -510,14 +508,14 @@ def updateEntrys():
 
                 if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
                     database.remove(i)  # delete entry
-                    logging.debug(f"Item: {i['itemName']} removed - days left expired")
+                    logging.info(f"Item: {i['itemName']} removed - days left expired")
                     continue
                 else:
                     i["daysLeft"] = daysLeft
-                    logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
-                    logging.debug(f"{i}")
+                    logging.info(f"Item: {i['itemName']} daysLeft: {daysLeft}")
+                    logging.info(f"{i}")
 
-                logging.debug("Next item.....")
+                logging.info("Next item.....")
 
             saveData()
         sleep(1200)  # sleep for 24 hours
