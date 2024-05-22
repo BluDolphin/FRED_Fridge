@@ -279,7 +279,7 @@ def barcode_reader():
                 close_camera("forward")
                 
         
-        sleep(1)
+        sleep(0.4)
 
 # ===== Keyboard ===============================================================
 def open_keyboard(entry, box=""):
@@ -323,7 +323,7 @@ def open_keyboard(entry, box=""):
         backspace_btn.grid(row=0, column=5, columnspan=5, padx=2, pady=2)
 
         # Create a button to close the keyboard with smaller size
-        close_keyboard_button = tk.Button(keyboard_window, text="✖", font=('calibri', 18), bg='white', command=close_keyboard, fg='red')
+        close_keyboard_button = tk.Button(keyboard_window, text="â", font=('calibri', 18), bg='white', command=close_keyboard, fg='red')
         close_keyboard_button.grid(row=len(keys), column=10, columnspan=5, padx=2, pady=2)  # Position the close button
 
         # Calculate the position of the keyboard window relative to the first input box
@@ -394,12 +394,15 @@ def update_image():
     if panel is not None:
         panel.destroy()
 
-    # Show image when camera takes photo
-    img = ImageTk.PhotoImage(Image.open("Barcode.jpg"))
+    # Open the image and resize it
+    image = Image.open("Barcode.jpg")
+    image = image.resize((960, 540), Image.ANTIALIAS)
+
+    # Show image to screen
+    img = ImageTk.PhotoImage(image)
     panel = tk.Label(camera_window, image=img)
     panel.image = img  # Keep a reference to the image to prevent it from being garbage collected
     panel.pack(padx=10, pady=10)
-    sleep(1)
     
 # Data Entry-------------------------------------------------------------------------------------
 # Function to go to data entry page from the register page
