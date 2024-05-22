@@ -129,7 +129,7 @@ def display_database_contents():
 
     # CREATE FRAME FOR DATABASE CONTENTS --------------------------------
     # Create a frame to contain the database content with fixed size
-    database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=920, height=500)  # Increased width slightly
+    database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=1700, height=800)  # Increased width slightly
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
 
 
@@ -140,20 +140,21 @@ def display_database_contents():
     # Add headings for database inside the headings frame
     headings = ["Barcode ID", "Item Name", "Date Added", "Expiry Date", "Days Left"]
     for col_index, heading in enumerate(headings):
-        label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
+        label = tk.Label(headings_frame, text=heading, font=('calibri', 16, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
     # TABLE -----------------------------------------------------------
     #variable to adjust the width of the labels
-    width = 920 # Adjusted width of the canvas
-    heigt = 470 # Adjusted height of the canvas
+    width = 1700 # Adjusted width of the canvas
+    heigt = 800 # Adjusted height of the canvas
     
     # Create a canvas to contain the database content
     canvas = tk.Canvas(database_frame, bg='white', width=width, height=heigt)  # Increased width slightly
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
-    scrollbar = tk.Scrollbar(database_frame, orient="vertical", command=canvas.yview)
+    scrollbar = tk.Scrollbar(database_frame, orient="vertical", command=canvas.yview, width = 40)
+    canvas.configure(yscrollcommand=scrollbar.set, scrollregion=canvas.bbox("all"))
     scrollbar.pack(side=tk.RIGHT, fill="y")
 
     # Configure the canvas to work with the scrollbar
@@ -167,9 +168,9 @@ def display_database_contents():
     # Add data rows
     for row_index, row in enumerate(database, start=0):  # Start with row 0
         for col_index, col_value in enumerate(row.values()):
-            tk.Label(content_frame, text=col_value, font=('calibri', 12), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18).grid(row=row_index, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
+            tk.Label(content_frame, text=col_value, font=('calibri', 18), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18).grid(row=row_index, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
-        delete_button = tk.Button(content_frame, text="Delete", command=lambda idx=row_index - 1: delete_item(idx), font=('calibri', 10), bg='red', fg='white', width=12)  # Increased width of button
+        delete_button = tk.Button(content_frame, text="Delete", command=lambda idx=row_index - 1: delete_item(idx), font=('calibri', 18), bg='red', fg='white', width=12)  # Increased width of button
         delete_button.grid(row=row_index, column=len(row), padx=2, pady=2, sticky='e')  # Reduced padding
 
     # Update scroll region to make the scrollbar work
@@ -181,6 +182,7 @@ def display_database_contents():
     
     database_frame.pack(anchor='center')
 
+    # BACK BUTTON ----------------------------------------------------------
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
     back_button_view.place(relx=0.5, rely=0.9, anchor='s')  # Place the button at the bottom center
@@ -304,14 +306,14 @@ def open_keyboard(entry, box=""):
         ]
 
         # Adjusted button width and height
-        button_width = 10  
-        button_height = 4  
+        button_width = 7
+        button_height = 3 
 
         for row_idx, row in enumerate(keys):
             row_frame = tk.Frame(keyboard_window)
             row_frame.grid(row=row_idx, column=0, pady=2)  # Adjusted row index
             for col_idx, key in enumerate(row):
-                btn = tk.Button(row_frame, text=key, width=button_width, height=button_height, command=lambda k=key: entry.insert(tk.END, k))
+                btn = tk.Button(row_frame, text=key, width=button_width, height=button_height, font=("Helvetica", 20), command=lambda k=key: entry.insert(tk.END, k))
                 btn.grid(row=0, column=col_idx, padx=2, pady=2)
 
         # Add a row for space and backspace keys
@@ -417,13 +419,13 @@ def data_entry_click():
     #CHECK IF ITEM IS IN CACHED ITEMS
     clear_entry_fields()  # Clear entry fields
     for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeData and barcodeData != 0:  # SQL - if barcodeID is found and not fallback
+        if i["barcodeID"] == barcodeData and i["barcodeID"] != 0:  # SQL - if barcodeID is found and not fallback
             itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
             cached = True
             logging.info(f"Item found: {itemName}")  # debug line
             break
         
-    if cached == True and barcodeData != 0: # If item is in cached items and not fallback
+    if cached == True: # If item is in cached items and not fallback
         product_name_entry.insert(0, itemName)
         product_name_entry.config(state='disabled')  # Disable the entry field
         nameFieldLocked = True
