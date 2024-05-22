@@ -117,7 +117,7 @@ def update_time_and_date():
 def display_database_contents():
     def delete_item(index):
         del database[index]
-        saveData("newEntry")
+        saveData()
         display_database_contents()  # Refresh the view after deletion
 
     # Clear the window before displaying the database content
@@ -140,15 +140,13 @@ def display_database_contents():
         label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
-
     # TABLE -----------------------------------------------------------
-    # VARIABLE TO ADJUST TABLE SIZE
-    table_width = 920  # Adjusted width of the table
-    table_height = 470  # Adjusted height of the table
-    
+    #variable to adjust the width of the labels
+    width = 920 # Adjusted width of the canvas
+    heigt = 470 # Adjusted height of the canvas
     
     # Create a canvas to contain the database content
-    canvas = tk.Canvas(database_frame, bg='white', width=table_width, height=table_height)  # Increased width slightly
+    canvas = tk.Canvas(database_frame, bg='white', width=width, height=heigt)  # Increased width slightly
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
@@ -186,6 +184,7 @@ def display_database_contents():
 
     # Set the geometry of the view window to fit the screen
     view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
+
 
 
 #==== input_data ===============================================================================
