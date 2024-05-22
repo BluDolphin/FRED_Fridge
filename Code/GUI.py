@@ -120,9 +120,11 @@ def display_database_contents():
         saveData("newEntry")
         display_database_contents()  # Refresh the view after deletion
 
+    # Clear the window before displaying the database content
     for widget in view_window.winfo_children():
         widget.destroy()
 
+    # CREATE FRAME FOR DATABASE CONTENTS --------------------------------
     # Create a frame to contain the database content with fixed size
     database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=920, height=500)  # Increased width slightly
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
@@ -139,8 +141,14 @@ def display_database_contents():
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
 
+    # TABLE -----------------------------------------------------------
+    # VARIABLE TO ADJUST TABLE SIZE
+    table_width = 920  # Adjusted width of the table
+    table_height = 470  # Adjusted height of the table
+    
+    
     # Create a canvas to contain the database content
-    canvas = tk.Canvas(database_frame, bg='white', width=900, height=470)  # Increased width slightly
+    canvas = tk.Canvas(database_frame, bg='white', width=table_width, height=table_height)  # Increased width slightly
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
@@ -172,7 +180,6 @@ def display_database_contents():
     
     database_frame.pack(anchor='center')
 
-    
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
     back_button_view.place(relx=0.5, rely=0.9, anchor='s')  # Place the button at the bottom center
