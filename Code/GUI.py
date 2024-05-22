@@ -1,33 +1,42 @@
 import tkinter as tk
 from time import strftime, localtime, sleep
-from PIL import Image, ImageTk
-import cv2
-from tkinter import messagebox, Scrollbar
-import threading
-import logging
-import json
-import os
-import datetime
+import cv2, threading, logging, json, os, datetime, sys
+from pyzbar import pyzbar
+from PIL import ImageTk, Image
 
+logging.basicConfig(level=logging.INFO) #Set logging to info
+logging.info("imports successful: logging set to INFO")
+
+# DISPLAY SETUP=====================================================================================
+if os.environ.get('DISPLAY','') == '':
+    print('no display found. Using :0.0')
+    os.environ.__setitem__('DISPLAY', ':0.0')
+    
+#GLOBAL VARIABLES==================================================================================
+#barcodeData - line 183
+#life - line 209
+#itemName - line 344
+#cached - line 345
 
 #Try to setup the pi camera if running on pi
 try:
+    logging.info("attempting to import picamera2")
     from picamera2 import Picamera2
     picam2 = Picamera2()         
     camera_config = picam2.create_still_configuration(main={"size": (1920, 1080)})
     picam2.configure(camera_config)
+    logging.info("import successful")
 except:
-    logging.debug("Not running on pi")
+    logging.info("Not running on pi")
 
 keyboard_window = None  # Reference to the keyboard window
 
 # Global variables
-picam2 = None  # Declare picamera instance globally
 rawCapture = None  # Declare PiRGBArray instance globally
-camera_window = None  # Reference to the camera window
+camera_window = None  # Reference to the came5ra window
 
-# Load data ------------------------------------------------------------
-logging.debug("Loading data")
+# Load data ========================================================================================
+logging.info("Loading data")
 
 # If file exists then load data
 if os.path.exists("FRED-Data.json"):
@@ -35,24 +44,71 @@ if os.path.exists("FRED-Data.json"):
         data = json.load(file)
         cachedItems = data["cachedItems"]
         database = data["database"]
+        lastChecked = data["lastChecked"]
 # If file does not exist then create new file  
 else:
-    logging.debug("File not found, creating new file")
-    cachedItems = [{"barcodeID": "header1", "itemName": "header2"}]  # SQL - cachedItems
-    database = [{"barcodeID": "barcodeID", "itemName": "itemName", "dateAdded": "dateAdded", "expiryDate": "expiryDate", "daysLeft": "daysLeft"}]  # SQL - database
+    logging.info("File not found, creating new file")
+    cachedItems = []  # SQL - cachedItems
+    database = []  # SQL - database
+    lastChecked = datetime.datetime.now().strftime("%Y-%m-%d")  # SQL - lastChecked
 
     with open("FRED-Data.json", "wt") as file:
-        json.dump({"cachedItems": cachedItems, "database": database}, file)
+        json.dump({"cachedItems": cachedItems, "database": database, "lastChecked": lastChecked}, file)
 
-logging.debug(f"cachedItems: {cachedItems}")
-logging.debug(f"database: {database}")
+logging.info(f"cachedItems: {cachedItems}")
+logging.info(f"database: {database}")
 
 # Save data ------------------------------------------------------------
-def saveData():  # Save data function
-    logging.debug("Saving data")
+def saveData(newEntry=""):  # Save data function
+    global cachedItems, database, lastChecked
+    
+    if newEntry == "newEntry": # If new entry is specified
+        # SQL - add new entry to database
+        cachedItems.append({"barcodeID": barcodeData, "itemName": itemName})  # SQL - add new entry to cachedItems
+        database.append({"barcodeID": barcodeData, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+    
+    logging.info("Saving data")
     with open("FRED-Data.json", "wt") as file:
-        json.dump({"cachedItems": cachedItems, "database": database}, file)  # Save data to file
+        json.dump({"cachedItems": cachedItems, "database": database, "lastChecked": lastChecked}, file)  # Save data to file
 
+#BACKGROUND THREAD================================================================================
+def updateEntrys():
+    global lastChecked, database
+    
+    logging.info("Background thread started")
+    exTime = 3  # number of days until purged from database
+
+    while True:
+        logging.info("Checking items.....")
+        # Update currentDate in each iteration
+        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        if newDate != lastChecked:
+            lastChecked = newDate  # Update currentDate if it's a new day
+
+            for i in database.copy(): # Create a copy for iteration to avoide skipping indexes when item gets removed
+                expiryDate = i["expiryDate"]
+                # find the difference between the expiry date and the current date
+                daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(lastChecked, "%Y-%m-%d")).days
+
+                if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
+                    database.remove(i)  # delete entry
+                    logging.info(f"Item: {i['itemName']} removed - days left expired")
+                else:
+                    # Update daysLeft in the spesific item
+                    i.update({"daysLeft": daysLeft})
+                    
+                    logging.info(f"Item: {i['itemName']} daysLeft: {daysLeft}")
+                    logging.info(f"{i}")
+
+                logging.info("Next item.....")
+                
+            saveData()
+        sleep(600)  # sleep for 10 mins
+# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
+threading.Thread(target=updateEntrys, daemon=True).start()  # Start the background thread
+
+#===================================================================================================
 # Function to update the time and date
 def update_time_and_date():
     time_str = strftime('%H:%M %p', localtime())
@@ -61,29 +117,21 @@ def update_time_and_date():
     date_label.config(text=date_str)
     time_label.after(1000, update_time_and_date)  # Update time every second
 
-# Function to handle register button click event
-def register_click():
-    root.withdraw()  # Hide the main window
-    open_camera()  # Open the camera when register button is clicked
-
-# Function to handle view button click event
-def view_click():
-    root.withdraw()  # Hide the main window
-    view_window.deiconify()  # Show the view window
-    display_database_contents()  # Display database contents
-
 def display_database_contents():
     def delete_item(index):
         del database[index]
         saveData()
         display_database_contents()  # Refresh the view after deletion
 
+    # Clear the window before displaying the database content
     for widget in view_window.winfo_children():
         widget.destroy()
 
+    # CREATE FRAME FOR DATABASE CONTENTS --------------------------------
     # Create a frame to contain the database content with fixed size
     database_frame = tk.Frame(view_window, bg='white', bd=2, relief=tk.SOLID, width=920, height=500)  # Increased width slightly
     database_frame.pack(pady=(10, 20), padx=20)  # Adjust padding as needed
+
 
     # Create a frame for the headings
     headings_frame = tk.Frame(database_frame, bg='white', bd=2, relief=tk.SOLID, height=30)  # Height adjusted to fit headings
@@ -95,8 +143,13 @@ def display_database_contents():
         label = tk.Label(headings_frame, text=heading, font=('calibri', 12, 'bold'), bg='lightblue', fg='black', bd=1, relief=tk.SOLID, width=18)
         label.grid(row=0, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
+    # TABLE -----------------------------------------------------------
+    #variable to adjust the width of the labels
+    width = 920 # Adjusted width of the canvas
+    heigt = 470 # Adjusted height of the canvas
+    
     # Create a canvas to contain the database content
-    canvas = tk.Canvas(database_frame, bg='white', width=900, height=470)  # Increased width slightly
+    canvas = tk.Canvas(database_frame, bg='white', width=width, height=heigt)  # Increased width slightly
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Add a scrollbar for vertical scrolling
@@ -106,12 +159,13 @@ def display_database_contents():
     # Configure the canvas to work with the scrollbar
     canvas.configure(yscrollcommand=scrollbar.set)
 
+
     # Create a frame to hold the actual content of the database
     content_frame = tk.Frame(canvas, bg='white')  # No need to specify width and height
     canvas.create_window((0, 0), window=content_frame, anchor='nw')
 
     # Add data rows
-    for row_index, row in enumerate(database, start=1):  # Start with row 1 after headings
+    for row_index, row in enumerate(database, start=0):  # Start with row 0
         for col_index, col_value in enumerate(row.values()):
             tk.Label(content_frame, text=col_value, font=('calibri', 12), bg='white', fg='black', bd=1, relief=tk.SOLID, width=18).grid(row=row_index, column=col_index, padx=2, pady=2, sticky='nsew')  # Adjust width of labels
 
@@ -124,13 +178,8 @@ def display_database_contents():
 
     # Bind mousewheel to the canvas for scrolling
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-
-    # Calculate the center coordinates of the view window
-    center_x = (view_window.winfo_width() - database_frame.winfo_reqwidth()) / 2
-    center_y = (view_window.winfo_height() - database_frame.winfo_reqheight()) / 2
-
-    # Place the database frame at the center of the view window
-    database_frame.place(x=center_x, y=center_y)
+    
+    database_frame.pack(anchor='center')
 
     # Create a button to go back to the main window from the view page
     back_button_view = tk.Button(view_window, text="Back to Menu", command=back_to_main_from_view, font=('calibri', 18), borderwidth=3)
@@ -139,39 +188,29 @@ def display_database_contents():
     # Set the geometry of the view window to fit the screen
     view_window.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}")
 
-# Function to go back to the main window from the view page
-def back_to_main_from_view():
-    view_window.withdraw()  # Hide the view window
-    root.deiconify()  # Show the main window
 
-# Function to clear the entry fields
-def clear_entry_fields():
-    product_name_entry.delete(0, tk.END)
-    expiry_date_entry.delete(0, tk.END)
 
-# Function to go to data entry page from the register page
-def data_entry_click():
-    clear_entry_fields()  # Clear entry fields
-    data_entry_window.deiconify()  # Show the data entry window
-
-# Function to go back to the main menu from the data entry page
-def back_to_main_menu_from_data_entry():
-    data_entry_window.withdraw()  # Hide the data entry window
-    close_keyboard()  # Close the keyboard window
-    root.deiconify()  # Show the main window
-    clear_entry_fields()  # Clear entry fields
-
+#==== input_data ===============================================================================
 # Function to continue from data entry page
-def continue_data_entry():
+def input_data():
+    global barcodeData, itemName, dateAdded, expiryDate, daysLeft, cached
     close_keyboard()  # Close the keyboard window
-
-    # Retrieve entered data
-    itemName = product_name_entry.get()
+    
+    # Retireve data 
+    barcodeData = int(barcodeData)  # GLobal variable
+    dateAdded = ""
+    expiryDate = ""
     daysLeft = int(expiry_date_entry.get())
-
-    # Generate barcodeID (This should be replaced by actual barcode scanning logic)
-    barcodeID = "1234567890"  # Placeholder
-
+    
+    #dont allow negative days
+    if daysLeft < 0:
+        return
+        
+    # Get user input for itemName if not found in cachedItems
+    if cached == False:
+        itemName = product_name_entry.get()
+        logging.info(f"{cachedItems}")  # debug line
+        
     # Get current date and calculate expiry date
     dateAdded = datetime.datetime.now()
     expiryDate = dateAdded + datetime.timedelta(days=daysLeft)
@@ -180,72 +219,77 @@ def continue_data_entry():
     dateAdded = dateAdded.strftime("%Y-%m-%d")
     expiryDate = expiryDate.strftime("%Y-%m-%d")
 
-    # Check for item name in cachedItems
-    for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeID:  # SQL - if barcodeID is found
-            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
-            logging.debug(f"Item found: {itemName}")  # debug line
-            break
-
-    # Get user input for itemName if not found in cachedItems
-    if itemName == "":
-        itemName = product_name_entry.get()
-        cachedItems.append({"barcodeID": barcodeID, "itemName": itemName})  # SQL - add new entry to cachedItems
-        logging.debug(f"{cachedItems}")  # debug line
-
-    logging.debug(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
-    # SQL - add new entry to database
-    database.append({"barcodeID": barcodeID, "itemName": itemName, "dateAdded": dateAdded, "expiryDate": expiryDate, "daysLeft": daysLeft})
+    
+    logging.info(f"itemName: {itemName} dateAdded: {dateAdded} expiryDate: {expiryDate} daysLeft: {daysLeft}")  # debug line
 
     # Save data to JSON file
-    saveData()
+    saveData("newEntry")
 
     # Hide data entry window and show the camera window again
     data_entry_window.withdraw()
     open_camera()
+    
 
+# ===== barcode_reader ==========================================================
+barcodeData = 0 #Defualt value for barcode data
 def barcode_reader():
-   def getBarcode():
+    global life, barcodeData
+    barcodeData = 0 
+    life = 1
+    counter = 0 #Counter for failed reads max attempts 5
+    
     # Take an image every second and read data
     while True:
-        picam2.start()
-        picam2.capture_file("Barcode.jpg")
         
-        # Read the image from the provided file path
-        image = cv2.imread("Barcode.jpg")
-        # Decode barcodes from the image using pyzbar
-        barcodes = pyzbar.decode(image)
-        # Iterate through detected barcodes and extract data from the barcode 
-        for barcode in barcodes:
-            # uses UTF-8 encoding
-            barcodeData = barcode.data.decode("utf-8")
-            logging.debug(f"Barcode: {barcodeData}")
-            if barcodeData.isdigit():
-                picam2.stop()
-                return(barcodeData)
+        if life != 1:
+            sys.exit()
+        
+        try:
+            picam2.start()
+            logging.info("Picam started")
+            picam2.capture_file("Barcode.jpg")
+            logging.info("Photo taken")
+            
+            update_image()
+            logging.info("Image updated")
+            
+            # Read the image from the provided file path
+            image = cv2.imread("Barcode.jpg")
+            # Decode barcodes from the image using pyzbar
+            barcodes = pyzbar.decode(image)
+            logging.info("Image read and decoded")
+            
+            # Iterate through detected barcodes and extract data from the barcode 
+            for barcode in barcodes:
+                # uses UTF-8 encoding
+                barcodeData = barcode.data.decode("utf-8") 
+                logging.info(f"Barcode: {barcodeData}")
+                if barcodeData.isdigit():
+                    picam2.stop()
+                    close_camera("forward")
+        except:
+            print("FUCK")
+            counter += 1
+            if counter >= 5:
+                barcodeData = 0
+                try:
+                    picam2.stop()
+                except:
+                    pass
+                close_camera("forward")
+                
+        
+        sleep(0.4)
+
+# ===== Keyboard ===============================================================
+def open_keyboard(entry, box=""):
+    global keyboard_window, nameFieldLocked
+
+    close_keyboard() # Close previous keyboard instance 
+    if nameFieldLocked == True and box == "name": # If clicked on the locked name text box
+        return # Return
     
-        time.sleep(1)
-
-# Function to open camera input
-def open_camera():
-    global picam2, rawCapture
-
-    camera_window.deiconify()  # Show the camera window
-    threading.Thread(target=barcode_reader, daemon=True).start()
-
-# Function to close camera input
-def close_camera():
-    global picam2, rawCapture, camera_window
-    if picam2:
-        picam2.close()  # Close PiCamera
-    if rawCapture:
-        rawCapture.close()  # Close PiRGBArray
-    if camera_window:
-        camera_window.withdraw()  # Hide the camera window
-    data_entry_click()  # Open the data entry window
-
-def open_keyboard(entry):
-    global keyboard_window
+    
     if keyboard_window is None or not keyboard_window.winfo_exists():
         keyboard_window = tk.Toplevel()
         keyboard_window.title("On-Screen Keyboard")
@@ -279,7 +323,7 @@ def open_keyboard(entry):
         backspace_btn.grid(row=0, column=5, columnspan=5, padx=2, pady=2)
 
         # Create a button to close the keyboard with smaller size
-        close_keyboard_button = tk.Button(keyboard_window, text="✖", font=('calibri', 18), bg='white', command=close_keyboard, fg='red')
+        close_keyboard_button = tk.Button(keyboard_window, text="â", font=('calibri', 18), bg='white', command=close_keyboard, fg='red')
         close_keyboard_button.grid(row=len(keys), column=10, columnspan=5, padx=2, pady=2)  # Position the close button
 
         # Calculate the position of the keyboard window relative to the first input box
@@ -309,41 +353,105 @@ def close_keyboard():
     if keyboard_window is not None and keyboard_window.winfo_exists():
         keyboard_window.destroy()
 
-def updateEntrys():
-    logging.debug("Background thread started")
-    exTime = 3  # number of days until purged from database
-    currentDate = datetime.datetime.now().strftime("%Y-%m-%d")  # Get current date
 
-    while True:
-        # Update currentDate in each iteration
-        newDate = datetime.datetime.now().strftime("%Y-%m-%d")
+#======WINDOW COMMANDS======================================================================================
+# main menu-------------------------------------------------------------------------------------
+def register_click(): # Function to handle register button click event
+    root.withdraw()  # Hide the main window
+    open_camera()
 
-        if newDate != currentDate:
-            currentDate = newDate  # Update currentDate if it's a new day
+def view_click(): # Function to handle view button click event
+    root.withdraw()  # Hide the main window
+    view_window.deiconify()  # Show the view window
+    display_database_contents()  # Display database contents
+    
+# camera-------------------------------------------------------------------------------------
+# Function to open camera input
+life = 1
+def open_camera():
+    camera_window.deiconify()  # Show the camera window
+    threading.Thread(target=barcode_reader).start()  # Start barcode reader in a separate thread
 
-            for i in database:
-                if i["daysLeft"] != "header5":  # TEMPORARY AS SQL WONT NEED THIS - REMOVE WHEN SQL IS IMPLEMENTED
-                    expiryDate = i["expiryDate"]
-                    # find the difference between the expiry date and the current date
-                    daysLeft = (datetime.datetime.strptime(expiryDate, "%Y-%m-%d") - datetime.datetime.strptime(currentDate, "%Y-%m-%d")).days
+# Function to close camera input
+def close_camera(par=0):
+    global root, camera_window, life
+    life = 0
+    try:
+        picam2.stop()
+    except:
+        logging.info("Already stopped/Not running on pi")
+    camera_window.withdraw()
 
-                    if daysLeft < -exTime:  # If daysLeft is less than exTime then remove from database
-                        database.remove(i)  # delete entry
-                        logging.debug(f"Item: {i['itemName']} removed - days left expired")
-                        continue
-                    else:
-                        i["daysLeft"] = daysLeft
-                        logging.debug(f"Item: {i['itemName']} daysLeft: {daysLeft}")
-                        logging.debug(f"{i}")
+    if par == "forward":
+        data_entry_click()
+    else:
+        root.deiconify()
 
-                    logging.debug("Next item.....")
+panel = None
+def update_image():
+    global panel  # Declare panel as global so we can modify it
+    # Destroy the previous panel if it exists
+    if panel is not None:
+        panel.destroy()
 
-            saveData()
-        time.sleep(86400)  # sleep for 24 hours
+    # Open the image and resize it
+    image = Image.open("Barcode.jpg")
+    image = image.resize((960, 540), Image.ANTIALIAS)
 
-# Note: You may need to adjust the sleep duration (86400 seconds = 24 hours) depending on your requirements.
+    # Show image to screen
+    img = ImageTk.PhotoImage(image)
+    panel = tk.Label(camera_window, image=img)
+    panel.image = img  # Keep a reference to the image to prevent it from being garbage collected
+    panel.pack(padx=10, pady=10)
+    
+# Data Entry-------------------------------------------------------------------------------------
+# Function to go to data entry page from the register page
+itemName = ""
+cached = False
+nameFieldLocked = False
+def data_entry_click():
+    global itemName, cached, nameFieldLocked
+    cached = False
+    nameFieldLocked = False
+    
+    #CHECK IF ITEM IS IN CACHED ITEMS
+    clear_entry_fields()  # Clear entry fields
+    for i in cachedItems:  # SQL - get all items from cachedItems
+        if i["barcodeID"] == barcodeData and barcodeData != 0:  # SQL - if barcodeID is found and not fallback
+            itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
+            cached = True
+            logging.info(f"Item found: {itemName}")  # debug line
+            break
+        
+    if cached == True and barcodeData != 0: # If item is in cached items and not fallback
+        product_name_entry.insert(0, itemName)
+        product_name_entry.config(state='disabled')  # Disable the entry field
+        nameFieldLocked = True
+        
+    data_entry_window.deiconify()  # Show the data entry window
 
-# Create the main application window
+# Function to go back to the main menu from the data entry page
+def back_to_main_menu_from_data_entry():
+    data_entry_window.withdraw()  # Hide the data entry window
+    close_keyboard()  # Close the keyboard window
+    root.deiconify()  # Show the main window
+    clear_entry_fields()  # Clear entry fields
+
+# Function to clear the entry fields
+def clear_entry_fields():
+    product_name_entry.delete(0, tk.END)
+    expiry_date_entry.delete(0, tk.END)    
+
+  
+# View -------------------------------------------------------------------------------------
+# Function to go back to the main window from the view page
+def back_to_main_from_view():
+    view_window.withdraw()  # Hide the view window
+    root.deiconify()  # Show the main window
+
+
+#======WINDOWS======================================================================================
+#-------ROOT-------------------------------------------------------------------------------------
 root = tk.Tk()
 root.title("Clock GUI")
 
@@ -382,15 +490,13 @@ register_button.pack(side='left', padx=50)  # Increase padding for larger button
 view_button = tk.Button(button_frame, text="View", command=view_click, width=20, height=5, font=('calibri', 24, 'bold'), borderwidth=3)
 view_button.pack(side='left', padx=50)  # Increase padding for larger buttons
 
+
+#-------CAMERA INPUT-------------------------------------------------------------------------------------
 # Create a new window for the camera feed
 camera_window = tk.Toplevel(root)
 camera_window.title("Camera Feed")
 camera_window.attributes('-fullscreen', True)  # Set camera window to fullscreen
 camera_window.configure(bg='white')
-
-# Create label for camera feed
-camera_label = tk.Label(camera_window, bg='white')
-camera_label.pack(anchor='center', expand=True)  # Centralize the camera feed label
 
 # Create a button to close the camera
 close_camera_button = tk.Button(camera_window, text="Close Camera", command=close_camera, font=('calibri', 18), borderwidth=3)
@@ -399,11 +505,14 @@ close_camera_button.pack(pady=10)  # Center the button below the camera
 # Hide the camera window initially
 camera_window.withdraw()
 
+
+#-------DATA ENTRY-------------------------------------------------------------------------------------
 # Create a new window for the data entry page
 data_entry_window = tk.Toplevel(root)
 data_entry_window.title("Data Entry Page")
 data_entry_window.attributes('-fullscreen', True)  # Set data entry window to fullscreen
 data_entry_window.configure(bg='white')
+
 
 # Create a label for the data entry page
 data_entry_label = tk.Label(data_entry_window, text="Data Entry", font=('calibri', 48), bg='white', fg='black')  # Increased font size
@@ -418,7 +527,9 @@ product_name_entry = tk.Entry(data_entry_window, font=('calibri', 18), bd=2, rel
 product_name_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the entry widget
 
 # Bind the on-screen keyboard to the product name entry field
-product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry))
+product_name_entry.bind("<Button-1>", lambda event: open_keyboard(product_name_entry, "name"))
+#fill product name entry field if item is in cached items
+
 
 # Create input field for expiry date
 expiry_date_label = tk.Label(data_entry_window, text="Expiry Date:", font=('calibri', 24), bg='white', fg='black')  # Increased font size
@@ -431,8 +542,9 @@ expiry_date_entry.pack(pady=10, ipadx=10, ipady=10)  # Add padding inside the en
 # Bind the on-screen keyboard to the expiry date entry field
 expiry_date_entry.bind("<Button-1>", lambda event: open_keyboard(expiry_date_entry))
 
+
 # Create a button to continue from data entry page
-continue_button = tk.Button(data_entry_window, text="Continue", command=continue_data_entry, font=('calibri', 18), borderwidth=3)
+continue_button = tk.Button(data_entry_window, text="Continue", command=input_data, font=('calibri', 18), borderwidth=3)
 continue_button.pack(pady=50)  # Increased top padding
 
 # Create a button to go back to the main menu from the data entry page
@@ -442,6 +554,8 @@ back_button_data_entry.place(relx=1.0, rely=1.0, anchor='se')  # Place the butto
 # Hide the data entry window initially
 data_entry_window.withdraw()
 
+
+#-------VIEW PAGE-------------------------------------------------------------------------------------
 # Create a new window for the view page
 view_window = tk.Toplevel(root)
 view_window.title("View Page")
@@ -455,5 +569,7 @@ back_button_view.place(relx=1.0, rely=1.0, anchor='se')  # Place the button in t
 # Hide the view window initially
 view_window.withdraw()
 
+
+# START GUI
 # Run the Tkinter event loop
 root.mainloop()
