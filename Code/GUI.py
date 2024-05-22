@@ -4,8 +4,9 @@ import cv2, threading, logging, json, os, datetime, sys
 from pyzbar import pyzbar
 from PIL import ImageTk, Image
 
-
 logging.basicConfig(level=logging.INFO) #Set logging to info
+logging.info("imports successful: logging set to INFO")
+
 # DISPLAY SETUP=====================================================================================
 if os.environ.get('DISPLAY','') == '':
     print('no display found. Using :0.0')
@@ -19,10 +20,12 @@ if os.environ.get('DISPLAY','') == '':
 
 #Try to setup the pi camera if running on pi
 try:
+    logging.info("attempting to import picamera2")
     from picamera2 import Picamera2
     picam2 = Picamera2()         
     camera_config = picam2.create_still_configuration(main={"size": (1920, 1080)})
     picam2.configure(camera_config)
+    logging.info("import successful")
 except:
     logging.info("Not running on pi")
 
