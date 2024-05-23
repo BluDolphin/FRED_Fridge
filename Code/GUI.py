@@ -17,6 +17,7 @@ if os.environ.get('DISPLAY','') == '':
 #life - line 209
 #itemName - line 344
 #cached - line 345
+#pannel - line 392
 
 #Try to setup the pi camera if running on pi
 try:
@@ -233,10 +234,10 @@ def input_data():
     
 
 # ===== barcode_reader ==========================================================
-barcodeData = 0 #Defualt value for barcode data
+barcodeData = 0 # initialise global variable
 def barcode_reader():
     global life, barcodeData
-    barcodeData = 0 
+    barcodeData = 0 # FALLBACK BARCODE
     life = 1
     counter = 0 #Counter for failed reads max attempts 5
     
@@ -273,7 +274,7 @@ def barcode_reader():
             print("FUCK")
             counter += 1
             if counter >= 5:
-                barcodeData = 0
+                # Use fallback barcode (0)
                 try:
                     picam2.stop()
                 except:
