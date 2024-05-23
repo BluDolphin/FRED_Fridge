@@ -265,7 +265,7 @@ def barcode_reader():
             # Iterate through detected barcodes and extract data from the barcode 
             for barcode in barcodes:
                 # uses UTF-8 encoding
-                barcodeData = barcode.data.decode("utf-8") 
+                barcodeData = barcode.data.decode("utf-8")
                 logging.info(f"Barcode: {barcodeData}")
                 if barcodeData.isdigit():
                     picam2.stop()
@@ -420,7 +420,9 @@ def data_entry_click():
     #CHECK IF ITEM IS IN CACHED ITEMS
     clear_entry_fields()  # Clear entry fields
     for i in cachedItems:  # SQL - get all items from cachedItems
-        if i["barcodeID"] == barcodeData and i["barcodeID"] != 0:  # SQL - if barcodeID is found and not fallback
+        cachedID = int(i["barcodeID"])
+
+        if cachedID == barcodeData:  # SQL - if barcodeID is found and not fallback
             itemName = i["itemName"]  # SQL - get itemName attached to barcodeID
             cached = True
             logging.info(f"Item found: {itemName}")  # debug line
