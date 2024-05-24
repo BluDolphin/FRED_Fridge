@@ -5,13 +5,7 @@ For now going to use placeholders for SQL and for the GUI
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import json
-import os
-import threading
-import datetime
-import time
-
-import cv2
+import json, os, threading, datetime, time, cv2
 from pyzbar import pyzbar
 
 #Try to setup the pi camera if running on pi
