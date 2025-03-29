@@ -18,7 +18,10 @@ At the beginning of each day FRED will update the daysLeft field to be correct. 
 - Finlay - https://www.linkedin.com/in/finlay-rastall/
 - Archie - https://www.linkedin.com/in/archie-butcher-6a94822b4/
 - Harman - https://www.linkedin.com/in/harman-samra17/
-  
+
+## Poster
+![1716300325064-fc074a08-752a-40ee-9658-1c8e4a6845a2D_1](https://github.com/user-attachments/assets/e70209d0-e13c-4555-81a3-4e49cdba9353)
+
 ## Flow Chart
 ![image](https://github.com/BluDolphin/FRED_Fridge/assets/115663810/4d67d54e-2730-4838-bcbc-4a5ee7240caa)
 ## LCD Panel Diagram
