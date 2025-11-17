@@ -16,8 +16,8 @@ At the beginning of each day FRED will update the daysLeft field to be correct. 
 - Harrison - https://www.linkedin.com/in/h-morgan/
 - Lachlan - https://www.linkedin.com/in/lachlan-churchland-2615362b3/
 - Finlay - https://www.linkedin.com/in/finlay-rastall/
-- Archie - https://www.linkedin.com/in/archie-butcher-6a94822b4/
 - Harman - https://www.linkedin.com/in/harman-samra17/
+- Archie - https://www.linkedin.com/in/archie-butcher-6a94822b4/
 
 ## Poster
 ![1716300325064-fc074a08-752a-40ee-9658-1c8e4a6845a2D_1](https://github.com/user-attachments/assets/e70209d0-e13c-4555-81a3-4e49cdba9353)
