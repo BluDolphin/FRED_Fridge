@@ -13,7 +13,7 @@ For example:
 At the beginning of each day FRED will update the daysLeft field to be correct. This will pass onto the GUI to indicate to the user how far the item is until its expiry date.
 
 ## Contributors 
-- Harrison - https://www.linkedin.com/in/h-morgan/
+- Lilly - https://www.linkedin.com/in/h-morgan/
 - Lachlan - https://www.linkedin.com/in/lachlan-churchland-2615362b3/
 - Finlay - https://www.linkedin.com/in/finlay-rastall/
 - Harman - https://www.linkedin.com/in/harman-samra17/
